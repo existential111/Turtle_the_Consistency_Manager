@@ -26,3 +26,11 @@ Renamed the project
 5/29/2026:
 Added logging time for weekly assignments (with automatic renewal)
 Reworked plan generation formula
+
+6/4/2026:
+* Published on Github Pages! *
+Added User Guide
+* Starting user testing! *
+
+6/5/2026:
+Added Google Analytics for tracking
