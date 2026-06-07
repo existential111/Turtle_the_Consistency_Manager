@@ -34,3 +34,10 @@ Added User Guide
 
 6/5/2026:
 Added Google Analytics for tracking
+
+6/6/2026:
+Reworded Backup & Restore to be more understandable
+Modified field names when creating assignments
+Made teacher field optional
+Re-formatted date system
+Added new date system indicator
