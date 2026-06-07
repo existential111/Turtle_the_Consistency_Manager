@@ -21,7 +21,7 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-			<!-- background: url('https://iopwiki.com/images/thumb/7/7a/202408_HK-416_c_crop.png/300px-202408_HK-416_c_crop.png') center/cover no-repeat fixed; -->
+	<!-- background: url('https://iopwiki.com/images/thumb/7/7a/202408_HK-416_c_crop.png/300px-202408_HK-416_c_crop.png') center/cover no-repeat fixed; -->
             background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -311,7 +311,6 @@
             cursor: pointer;
         }
         .tag-chip .tag-remove:hover { opacity: 1; }
-        /* tag display (read-only, smaller) on cards */
         .tag-display-row {
             display: flex;
             flex-wrap: wrap;
@@ -336,7 +335,6 @@
             color: #999;
             background: #f0f0f0;
         }
-        /* new-tag input area */
         .new-tag-row {
             display: flex;
             gap: 8px;
@@ -379,7 +377,6 @@
             transform: translateY(-1px);
             box-shadow: 0 3px 10px rgba(102,126,234,0.4);
         }
-        /* filter bar in view assignments */
         .filter-bar {
             display: flex;
             flex-wrap: wrap;
@@ -498,11 +495,26 @@
             transition: background 0.2s ease;
         }
         .popup-cancel-btn:hover { background: #dee2e6; }
+
+        /* ── SECTION HEADER (back btn + title row) ── */
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .section-header h2 {
+            margin-bottom: 0;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Turtle</h1>
+
+        <div style="background:#e65c00;color:white;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:14px;line-height:1.5;">
+            <strong>⚠️ Date System Update:</strong> A new date system was recently introduced. The <strong>year</strong> on existing assignment due dates may be inaccurate. Please go to <strong>Edit Assignment</strong> and check each assignment's due date, correcting the year where needed.
+        </div>
 
         <div id="status-message" class="status-message"></div>
 
@@ -527,18 +539,21 @@
                 <button class="nav-btn" onclick="showSection('view-assignments')">View Assignments</button>
                 <button class="nav-btn" onclick="showSection('edit-assignment')">Edit Assignment</button>
                 <button class="nav-btn" onclick="showSection('remove-assignment')">Remove Assignment</button>
-                <button class="nav-btn" onclick="showSection('backup-restore')">Backup & Restore</button>
+                <button class="nav-btn" onclick="showSection('backup-restore')">Save Data</button>
             </div>
         </div>
 
         <!-- Add Assignment Section -->
         <div id="add-assignment" class="section">
-            <h2>Add New Assignment</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Add New Assignment</h2>
+            </div>
             <form id="add-assignment-form">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="teacher">Teacher:</label>
-                        <input type="text" id="teacher" name="teacher" required>
+                        <label for="teacher">Teacher: <span style="font-weight:400;color:#888;font-size:13px;">(optional)</span></label>
+                        <input type="text" id="teacher" name="teacher">
                     </div>
                     <div class="form-group">
                         <label for="type">Type:</label>
@@ -550,23 +565,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="task">Assignment name:</label>
+                    <label for="task">Assigned Activity:</label>
                     <textarea id="task" name="task" rows="3" required></textarea>
                 </div>
 
                 <div class="form-group" id="date-group">
                     <label>Due Date:</label>
-                    <div class="date-input">
-                        <select id="dayOfWeek" name="dayOfWeek">
-                            <option value="Sun">Sunday</option>
-                            <option value="Mon">Monday</option>
-                            <option value="Tue">Tuesday</option>
-                            <option value="Wed">Wednesday</option>
-                            <option value="Thu">Thursday</option>
-                            <option value="Fri">Friday</option>
-                            <option value="Sat">Saturday</option>
-                        </select>
-                        <select id="month" name="month">
+                    <div class="date-input" style="grid-template-columns:1fr 1fr 1fr;">
+                        <select id="month" name="month" onchange="updateDayOfWeek()">
                             <option value="Jan">January</option>
                             <option value="Feb">February</option>
                             <option value="Mar">March</option>
@@ -580,8 +586,10 @@
                             <option value="Nov">November</option>
                             <option value="Dec">December</option>
                         </select>
-                        <input type="number" id="day" name="day" min="1" max="31" value="1">
+                        <input type="number" id="day" name="day" min="1" max="31" placeholder="Day" onchange="updateDayOfWeek()" oninput="updateDayOfWeek()">
+                        <input type="number" id="year" name="year" min="2020" max="2100" placeholder="Year" onchange="updateDayOfWeek()" oninput="updateDayOfWeek()">
                     </div>
+                    <p id="day-of-week-display" style="margin-top:8px;font-size:13px;color:#667eea;font-weight:600;min-height:18px;"></p>
                 </div>
 
                 <div class="form-row">
@@ -641,14 +649,16 @@
                     <div id="export-csv-error" style="display:none;margin-top:8px;padding:10px 14px;background:#fff0f0;border:1px solid #f5c6cb;border-radius:6px;color:#dc3545;font-size:13px;font-weight:600;"></div>
                 </div>
 
-                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
                 <button type="submit" class="submit-btn">Add Assignment</button>
             </form>
         </div>
 
         <!-- View Assignments Section -->
         <div id="view-assignments" class="section">
-            <h2>All Assignments</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>All Assignments</h2>
+            </div>
             <div id="view-filter-bar" class="filter-bar"></div>
             <div class="loading" id="assignments-loading">
                 <div class="spinner"></div>
@@ -656,25 +666,29 @@
             </div>
             <div id="assignments-container" class="assignments-list"></div>
             <br>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
             <button type="button" class="submit-btn" onclick="loadAssignments()">Refresh</button>
         </div>
 
         <!-- Plan Day Section -->
         <div id="plan-day" class="section">
-            <h2>Plan Your Day</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Plan Your Day</h2>
+            </div>
             <div class="form-group">
                 <label for="available-time">Available Time Today (minutes):</label>
                 <input type="number" id="available-time" min="1" required>
             </div>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
             <button type="button" class="submit-btn" onclick="planDay()">Generate Plan</button>
             <div id="plan-results" class="assignments-list" style="display:none;"></div>
         </div>
 
         <!-- Log Time Section -->
         <div id="log-time" class="section">
-            <h2>Log Time</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Log Time</h2>
+            </div>
             <p>Select an assignment and log the time you spent on it.</p>
             <div class="form-group">
                 <label for="assignment-select">Assignment:</label>
@@ -692,13 +706,15 @@
                     <input type="number" id="time-spent" min="1" required>
                 </div>
             </div>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
             <button type="button" class="submit-btn" id="log-btn" style="display:none;" onclick="logTime()">Log Time</button>
         </div>
 
         <!-- Edit Assignment Section -->
         <div id="edit-assignment" class="section">
-            <h2>Edit Assignment</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Edit Assignment</h2>
+            </div>
             <div class="form-group">
                 <label for="edit-select">Select Assignment to Edit:</label>
                 <select id="edit-select" onchange="loadAssignmentForEdit()">
@@ -710,8 +726,8 @@
                 <form id="edit-assignment-form">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="edit-teacher">Teacher:</label>
-                            <input type="text" id="edit-teacher" name="teacher" required>
+                            <label for="edit-teacher">Teacher: <span style="font-weight:400;color:#888;font-size:13px;">(optional)</span></label>
+                            <input type="text" id="edit-teacher" name="teacher">
                         </div>
                         <div class="form-group">
                             <label for="edit-type">Type:</label>
@@ -722,22 +738,13 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="edit-task">Assignment:</label>
+                        <label for="edit-task">Assigned Activity:</label>
                         <textarea id="edit-task" name="task" rows="3" required></textarea>
                     </div>
                     <div id="edit-date-group" class="form-group">
                         <label>Due Date:</label>
-                        <div class="date-input">
-                            <select id="edit-dayOfWeek" name="dayOfWeek">
-                                <option value="Sun">Sunday</option>
-                                <option value="Mon">Monday</option>
-                                <option value="Tue">Tuesday</option>
-                                <option value="Wed">Wednesday</option>
-                                <option value="Thu">Thursday</option>
-                                <option value="Fri">Friday</option>
-                                <option value="Sat">Saturday</option>
-                            </select>
-                            <select id="edit-month" name="month">
+                        <div class="date-input" style="grid-template-columns:1fr 1fr 1fr;">
+                            <select id="edit-month" name="month" onchange="updateEditDayOfWeek()">
                                 <option value="Jan">January</option>
                                 <option value="Feb">February</option>
                                 <option value="Mar">March</option>
@@ -751,8 +758,10 @@
                                 <option value="Nov">November</option>
                                 <option value="Dec">December</option>
                             </select>
-                            <input type="number" id="edit-day" name="day" min="1" max="31">
+                            <input type="number" id="edit-day" name="day" min="1" max="31" placeholder="Day" onchange="updateEditDayOfWeek()" oninput="updateEditDayOfWeek()">
+                            <input type="number" id="edit-year" name="year" min="2020" max="2100" placeholder="Year" onchange="updateEditDayOfWeek()" oninput="updateEditDayOfWeek()">
                         </div>
+                        <p id="edit-day-of-week-display" style="margin-top:8px;font-size:13px;color:#667eea;font-weight:600;min-height:18px;"></p>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
@@ -806,12 +815,14 @@
                     </div>
                 </form>
             </div>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
         </div>
 
         <!-- Remove Assignment Section -->
         <div id="remove-assignment" class="section">
-            <h2>Remove Assignment</h2>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Remove Assignment</h2>
+            </div>
             <div class="form-group">
                 <label for="remove-select">Assignment to Remove:</label>
                 <select id="remove-select" onchange="previewRemoveAssignment()" required>
@@ -822,29 +833,33 @@
                 <p style="font-size:13px;font-weight:600;color:#555;margin-bottom:8px;">Preview:</p>
                 <div id="remove-preview-card"></div>
             </div>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
             <button type="button" class="submit-btn" id="remove-btn" style="display:none;" onclick="removeAssignment()">Remove Assignment</button>
         </div>
 
-        <!-- Backup & Restore Section -->
+        <!-- Save Data Section -->
         <div id="backup-restore" class="section">
-            <h2>Backup & Restore</h2>
-            <div class="form-group">
-                <h3>Backup Data</h3>
-                <p>Download a backup of all your assignments:</p>
-                <button class="btn" onclick="downloadBackup()">Download Backup</button>
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Save Data</h2>
             </div>
             <div class="form-group">
-                <h3>Restore Data</h3>
-                <p>Upload a backup file to restore your assignments:</p>
+                <h3>Download a Copy</h3>
+                <p>Save all your assignments to a file on your device. Keep this somewhere safe — you can use it to restore your data later or move it to another device.</p>
+                <br>
+                <button class="btn" onclick="downloadBackup()">⬇ Download My Data</button>
+            </div>
+            <div class="form-group">
+                <h3>Restore from a File</h3>
+                <p>Have a previously downloaded data file? Upload it here to bring your assignments back. This will replace everything currently in the planner.</p>
+                <br>
                 <input type="file" id="backup-file" accept=".json" onchange="handleFileUpload(event)">
             </div>
             <div class="form-group">
-                <h3 style="color:#dc3545;">Clear All Data</h3>
-                <p style="color:#dc3545;">⚠️ This will permanently delete all assignments!</p>
-                <button class="btn" style="background:#dc3545;" onclick="clearAllData()">Clear All Data</button>
+                <h3 style="color:#dc3545;">Erase All Data</h3>
+                <p style="color:#dc3545;">⚠️ This permanently deletes all your assignments and tags. Download a copy first if you want to keep your data.</p>
+                <br>
+                <button class="btn" style="background:#dc3545;" onclick="clearAllData()">Erase Everything</button>
             </div>
-            <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
         </div>
     </div>
 
@@ -863,7 +878,7 @@
                 this.importance       = importance;
                 this.timeSpent        = timeSpent;
                 this.tagId            = tagId;
-                this.weeklyTimeSpent  = weeklyTimeSpent; // resets every Monday
+                this.weeklyTimeSpent  = weeklyTimeSpent;
             }
         }
 
@@ -871,7 +886,7 @@
         //  Data Manager  (localStorage-backed)
         // ─────────────────────────────────────────────
         const LS_KEY      = 'time_manager_data';
-        const LS_WEEK_KEY = 'time_manager_week'; // stores ISO date string of the last Monday reset
+        const LS_WEEK_KEY = 'time_manager_week';
 
         class DataManager {
             constructor() {
@@ -886,7 +901,6 @@
                 this._resetWeeklyIfNeeded();
             }
 
-            // ── Persistence ──────────────────────────
             _load() {
                 try {
                     const raw = localStorage.getItem(LS_KEY);
@@ -908,11 +922,10 @@
                 }
             }
 
-            // Returns the ISO date string (YYYY-MM-DD) of the Monday on or before a given date
             _getMondayKey(date) {
                 const d = new Date(date);
-                const day = d.getDay(); // 0=Sun … 6=Sat
-                const diff = (day === 0) ? -6 : 1 - day; // days back to Monday
+                const day = d.getDay();
+                const diff = (day === 0) ? -6 : 1 - day;
                 d.setDate(d.getDate() + diff);
                 return d.toISOString().slice(0, 10);
             }
@@ -921,7 +934,6 @@
                 const thisMondayKey  = this._getMondayKey(new Date());
                 const lastResetKey   = localStorage.getItem(LS_WEEK_KEY) || '';
                 if (lastResetKey !== thisMondayKey) {
-                    // New week — reset weeklyTimeSpent on all weekly assignments
                     let changed = false;
                     this.assignments.forEach(a => {
                         if (a.repetitionType === 'weekly' && a.weeklyTimeSpent > 0) {
@@ -945,7 +957,6 @@
                 }
             }
 
-            // ── Tag helpers ──────────────────────────
             addTag(name, color) {
                 const id = 'tag_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
                 this.tags.push({ id, name, color });
@@ -955,7 +966,6 @@
             getTag(id) { return this.tags.find(t => t.id === id) || null; }
             getAllTags() { return [...this.tags]; }
 
-            // ── Assignment helpers ───────────────────
             async readAssignments()   { return [...this.assignments]; }
             async writeAssignments(a) { this.assignments = [...a]; this._save(); }
 
@@ -1004,7 +1014,6 @@
                 this._save();
             }
 
-            // ── Backup / restore ─────────────────────
             exportAssignments() {
                 return JSON.stringify({ assignments: this.assignments, tags: this.tags }, null, 2);
             }
@@ -1028,17 +1037,10 @@
 
         const dataManager = new DataManager();
 
-        // ─────────────────────────────────────────────
-        //  Tag state (which tag is selected in each form)
-        // ─────────────────────────────────────────────
         let addFormSelectedTagId  = null;
         let editFormSelectedTagId = null;
-        let viewFilterTagId       = 'ALL'; // 'ALL' or a tag id
+        let viewFilterTagId       = 'ALL';
 
-        // ─────────────────────────────────────────────
-        //  Render tag chips inside a form's tag section
-        //  context: 'add' | 'edit'
-        // ─────────────────────────────────────────────
         function renderTagChips(context) {
             const chipsRow  = document.getElementById(context + '-tag-chips');
             const tags      = dataManager.getAllTags();
@@ -1087,12 +1089,10 @@
             const newId = dataManager.addTag(name, colorInput.value);
             nameInput.value = '';
 
-            // Auto-select the newly created tag in this form
             if (context === 'add') addFormSelectedTagId = newId;
             else editFormSelectedTagId = newId;
 
             renderTagChips(context);
-            // Also refresh the other form's chips so both stay in sync
             renderTagChips(context === 'add' ? 'edit' : 'add');
         }
 
@@ -1107,9 +1107,6 @@
             renderTagChips('edit');
         }
 
-        // ─────────────────────────────────────────────
-        //  Tag display helper for cards
-        // ─────────────────────────────────────────────
         function tagDisplayHtml(tagId) {
             if (!tagId) return '<span class="no-tag-chip">No tag</span>';
             const tag = dataManager.getTag(tagId);
@@ -1121,9 +1118,6 @@
             return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
         }
 
-        // ─────────────────────────────────────────────
-        //  View-assignments tag filter bar
-        // ─────────────────────────────────────────────
         function renderFilterBar() {
             const bar  = document.getElementById('view-filter-bar');
             const tags = dataManager.getAllTags();
@@ -1136,14 +1130,12 @@
             filterLabel.textContent = 'Filter:';
             bar.appendChild(filterLabel);
 
-            // "All" chip
             const allChip = document.createElement('span');
             allChip.className = 'filter-chip all-chip' + (viewFilterTagId === 'ALL' ? ' active' : '');
             allChip.textContent = 'All';
             allChip.addEventListener('click', () => { viewFilterTagId = 'ALL'; renderFilterBar(); loadAssignments(); });
             bar.appendChild(allChip);
 
-            // One chip per tag
             tags.forEach(tag => {
                 const chip = document.createElement('span');
                 chip.className = 'filter-chip tag-filter' + (viewFilterTagId === tag.id ? ' active' : '');
@@ -1158,12 +1150,42 @@
             });
         }
 
-        // ─────────────────────────────────────────────
-        //  Utilities
-        // ─────────────────────────────────────────────
-        function convertToDate(dayOfWeek, month, day, year = 2025) {
+        function convertToDate(month, day, year) {
             const months = { Jan:0,Feb:1,Mar:2,Apr:3,May:4,Jun:5,Jul:6,Aug:7,Sep:8,Oct:9,Nov:10,Dec:11 };
             return new Date(year, months[month], day, 12, 0, 0);
+        }
+
+        const DOW_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+        const DOW_SHORT = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+
+        function updateDayOfWeek() {
+            const month  = document.getElementById('month').value;
+            const day    = parseInt(document.getElementById('day').value);
+            const year   = parseInt(document.getElementById('year').value);
+            const disp   = document.getElementById('day-of-week-display');
+            if (month && day >= 1 && day <= 31 && year >= 2020 && year <= 2100) {
+                const d = convertToDate(month, day, year);
+                if (!isNaN(d.getTime())) {
+                    disp.textContent = '📅 ' + DOW_NAMES[d.getDay()];
+                    return;
+                }
+            }
+            disp.textContent = '';
+        }
+
+        function updateEditDayOfWeek() {
+            const month  = document.getElementById('edit-month').value;
+            const day    = parseInt(document.getElementById('edit-day').value);
+            const year   = parseInt(document.getElementById('edit-year').value);
+            const disp   = document.getElementById('edit-day-of-week-display');
+            if (month && day >= 1 && day <= 31 && year >= 2020 && year <= 2100) {
+                const d = convertToDate(month, day, year);
+                if (!isNaN(d.getTime())) {
+                    disp.textContent = '📅 ' + DOW_NAMES[d.getDay()];
+                    return;
+                }
+            }
+            disp.textContent = '';
         }
 
         function showStatus(message, isError = false) {
@@ -1188,7 +1210,6 @@
             } else if (sectionId === 'edit-assignment') {
                 loadAssignmentSelect('edit-select');
             } else if (sectionId === 'add-assignment') {
-                // Reset selected tag and refresh chips for add form
                 addFormSelectedTagId = null;
                 renderTagChips('add');
             }
@@ -1204,9 +1225,6 @@
                 document.getElementById('edit-type').value === 'indefinite' ? 'none' : 'block';
         }
 
-        // ─────────────────────────────────────────────
-        //  Add assignment
-        // ─────────────────────────────────────────────
         document.getElementById('add-assignment-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const formData   = new FormData(this);
@@ -1219,9 +1237,9 @@
 
             let dueDate;
             if (type === 'definite') {
-                dueDate = convertToDate(formData.get('dayOfWeek'), formData.get('month'), parseInt(formData.get('day')));
+                dueDate = convertToDate(formData.get('month'), parseInt(formData.get('day')), parseInt(formData.get('year')));
             } else {
-                dueDate = convertToDate("Sun","Jan",1);
+                dueDate = convertToDate("Jan", 1, 2025);
             }
 
             const a = new Assignment(teacher, task, type, dueDate, repetition, time, importance, 0, addFormSelectedTagId);
@@ -1238,9 +1256,6 @@
             }
         });
 
-        // ─────────────────────────────────────────────
-        //  Assignment select dropdowns
-        // ─────────────────────────────────────────────
         async function loadAssignmentSelect(selectId) {
             const select = document.getElementById(selectId);
             const assignments = await dataManager.readAssignments();
@@ -1248,14 +1263,11 @@
             assignments.forEach((a, i) => {
                 const opt = document.createElement('option');
                 opt.value = i;
-                opt.textContent = `${a.teacher} - ${a.task}`;
+                opt.textContent = a.teacher ? `${a.teacher} — ${a.task}` : a.task;
                 select.appendChild(opt);
             });
         }
 
-        // ─────────────────────────────────────────────
-        //  View assignments
-        // ─────────────────────────────────────────────
         async function loadAssignments() {
             const container = document.getElementById('assignments-container');
             const loading   = document.getElementById('assignments-loading');
@@ -1265,7 +1277,6 @@
             try {
                 let assignments = await dataManager.readAssignments();
 
-                // Apply tag filter
                 if (viewFilterTagId !== 'ALL') {
                     assignments = assignments.filter(a => a.tagId === viewFilterTagId);
                 }
@@ -1296,7 +1307,7 @@
                     <div class="priority-badge priority-${assignment.importance}">${dataManager.priorityChart[assignment.importance]}</div>
                 </div>
                 <div class="assignment-details">
-                    <strong>Teacher:</strong> ${escHtml(assignment.teacher)}<br>
+                    ${assignment.teacher ? `<strong>Teacher:</strong> ${escHtml(assignment.teacher)}<br>` : ''}
                     <strong>Type:</strong> ${assignment.type}<br>
                     <strong>Due Date:</strong> ${dueDateString}<br>
                     <strong>Repetition:</strong> ${assignment.repetitionType}<br>
@@ -1316,12 +1327,9 @@
             const dow = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
             const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
             const d   = new Date(assignment.dueDate);
-            return `${dow[d.getDay()]} ${mon[d.getMonth()]} ${d.getDate()}`;
+            return `${dow[d.getDay()]} ${mon[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
         }
 
-        // ─────────────────────────────────────────────
-        //  Plan day
-        // ─────────────────────────────────────────────
         async function planDay() {
             const availableTime = parseInt(document.getElementById('available-time').value);
             const resultsDiv    = document.getElementById('plan-results');
@@ -1345,13 +1353,11 @@
                 else if (assignments[i].repetitionType === "weekly") daysUntilDue[i] = 4;
             }
 
-            // For weekly assignments, use weeklyTimeSpent as the "progress" this week
-            // so the planner treats them as done once the weekly quota is filled.
             const effectiveTimeSpent = assignments.map(a =>
                 a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) : a.timeSpent
             );
 
-            const DAILY_BONUS = 200; // flat bonus added to daily assignment criticality
+            const DAILY_BONUS = 200;
 
             const criticalityScores = assignments.map((a, i) => {
                 const spent = effectiveTimeSpent[i];
@@ -1362,9 +1368,7 @@
             });
 
             let remainingTime = availableTime;
-            // Working copies use effectiveTimeSpent so the loop respects weekly progress
             const working = assignments.map((a, i) => ({ ...a, timeSpent: effectiveTimeSpent[i] }));
-            // Snapshot real values for display
             const realTimeSpent = assignments.map((a, i) =>
                 a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) : a.timeSpent
             );
@@ -1445,7 +1449,7 @@
                     <div class="priority-badge priority-${assignment.importance}">${dataManager.priorityChart[assignment.importance]}</div>
                 </div>
                 <div class="assignment-details">
-                    <strong>Teacher:</strong> ${escHtml(assignment.teacher)}<br>
+                    ${assignment.teacher ? `<strong>Teacher:</strong> ${escHtml(assignment.teacher)}<br>` : ''}
                     <strong>Type:</strong> ${assignment.type}<br>
                     <strong>Due Date:</strong> ${dueDateString}<br>
                     <strong>Repetition:</strong> ${assignment.repetitionType}<br>
@@ -1460,9 +1464,6 @@
             return card;
         }
 
-        // ─────────────────────────────────────────────
-        //  Edit assignment
-        // ─────────────────────────────────────────────
         async function loadAssignmentForEdit() {
             const idx = parseInt(document.getElementById('edit-select').value);
             if (isNaN(idx) || idx < 0) { clearEditForm(); return; }
@@ -1479,18 +1480,18 @@
             document.getElementById('edit-time-spent').value = a.timeSpent;
 
             if (a.type === 'definite') {
-                const dow = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
                 const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
                 const d = new Date(a.dueDate);
-                document.getElementById('edit-dayOfWeek').value = dow[d.getDay()];
-                document.getElementById('edit-month').value     = mon[d.getMonth()];
-                document.getElementById('edit-day').value       = d.getDate();
+                document.getElementById('edit-month').value = mon[d.getMonth()];
+                document.getElementById('edit-day').value   = d.getDate();
+                document.getElementById('edit-year').value  = d.getFullYear();
                 document.getElementById('edit-date-group').style.display = 'block';
+                updateEditDayOfWeek();
             } else {
                 document.getElementById('edit-date-group').style.display = 'none';
+                document.getElementById('edit-day-of-week-display').textContent = '';
             }
 
-            // Sync tag selection
             editFormSelectedTagId = a.tagId || null;
             renderTagChips('edit');
 
@@ -1522,11 +1523,11 @@
 
             let dueDate;
             if (type === 'definite') {
-                const dow = fd.get('dayOfWeek'), mon = fd.get('month'), day = parseInt(fd.get('day'));
-                if (!dow || !mon || !day) { showStatus('Please fill in all date fields', true); return; }
-                dueDate = convertToDate(dow, mon, day);
+                const mon = fd.get('month'), day = parseInt(fd.get('day')), year = parseInt(fd.get('year'));
+                if (!mon || !day || !year) { showStatus('Please fill in all date fields', true); return; }
+                dueDate = convertToDate(mon, day, year);
             } else {
-                dueDate = convertToDate("Sun","Jan",1);
+                dueDate = convertToDate("Jan", 1, 2025);
             }
 
             const updated = new Assignment(teacher, task, type, dueDate, rep, time, imp, ts, editFormSelectedTagId);
@@ -1545,9 +1546,6 @@
             document.getElementById('edit-select').value = '';
         }
 
-        // ─────────────────────────────────────────────
-        //  Log time
-        // ─────────────────────────────────────────────
         async function previewLogTime() {
             const idx     = parseInt(document.getElementById('assignment-select').value);
             const preview = document.getElementById('log-preview');
@@ -1608,9 +1606,6 @@
             }
         }
 
-        // ─────────────────────────────────────────────
-        //  Remove assignment
-        // ─────────────────────────────────────────────
         async function previewRemoveAssignment() {
             const idx     = parseInt(document.getElementById('remove-select').value);
             const preview = document.getElementById('remove-preview');
@@ -1655,9 +1650,6 @@
             }
         }
 
-        // ─────────────────────────────────────────────
-        //  Backup & restore
-        // ─────────────────────────────────────────────
         function downloadBackup() {
             const blob = new Blob([dataManager.exportAssignments()], { type: 'application/json' });
             const url  = URL.createObjectURL(blob);
@@ -1696,10 +1688,6 @@
             }
         }
 
-        // ─────────────────────────────────────────────
-        //  CSV Import (single assignment, in Add form)
-        // ─────────────────────────────────────────────
-
         /*
          * CSV FORMAT SPECIFICATION
          * ────────────────────────
@@ -1714,31 +1702,25 @@
          *   importance   – integer 1–5
          *
          * Optional columns:
-         *   due_day_of_week – "Sun","Mon","Tue","Wed","Thu","Fri","Sat"
-         *                     (required when type=definite; ignored otherwise)
          *   due_month       – "Jan","Feb","Mar","Apr","May","Jun",
          *                     "Jul","Aug","Sep","Oct","Nov","Dec"
          *                     (required when type=definite; ignored otherwise)
          *   due_day         – integer 1–31
          *                     (required when type=definite; ignored otherwise)
-         *   tag             – tag name; if the tag doesn't already exist it is
-         *                     created using tag_color (if present) or a default colour.
-         *                     If a tag with this name already exists, tag_color is ignored
-         *                     and the stored colour is kept. Leave blank for no tag.
-         *   tag_color       – hex colour for the tag (e.g. #764ba2). Optional; only used
-         *                     when the tag named in "tag" does not yet exist in the planner.
-         *                     Omitting this column is fine — older files without it are
-         *                     still imported correctly using the default colour.
-         *   time_spent      – non-negative integer, minutes already logged (default 0)
+         *   due_year        – 4-digit year e.g. 2026
+         *                     (required when type=definite; ignored otherwise)
+         *   tag             – tag name
+         *   tag_color       – hex colour e.g. #764ba2
+         *   time_spent      – non-negative integer (default 0)
          *
-         * Fields containing commas or double-quotes must be wrapped in double-quotes.
-         * Internal double-quotes are escaped as "".
+         * teacher is optional — leave blank or omit the column if there's no teacher.
+         * Fields with commas or double-quotes must be wrapped in double-quotes.
          * Blank lines and lines beginning with # are ignored.
          *
          * EXAMPLE
          * ───────
-         * teacher,task,type,due_day_of_week,due_month,due_day,repetition,time,importance,tag,tag_color,time_spent
-         * Ms Smith,Pirouette drill,definite,Fri,Jun,6,once,30,4,Technique,#e74c3c,0
+         * teacher,task,type,due_month,due_day,due_year,repetition,time,importance,tag,tag_color,time_spent
+         * Ms Smith,Pirouette drill,definite,Jun,6,2026,once,30,4,Technique,#e74c3c,0
          */
 
         function parseCsvLine(line) {
@@ -1777,7 +1759,6 @@
 
         function applyAddCsv(text) {
             showAddCsvError('');
-            const VALID_DAYS   = new Set(['Sun','Mon','Tue','Wed','Thu','Fri','Sat']);
             const VALID_MONTHS = new Set(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
             const VALID_TYPES  = new Set(['definite','indefinite']);
             const VALID_REPS   = new Set(['once','daily','weekly']);
@@ -1791,40 +1772,36 @@
             const fields  = parseCsvLine(lines[1]);
             const get     = (name) => (col(name) !== -1 && fields[col(name)] !== undefined) ? fields[col(name)].trim() : '';
 
-            // Required columns present?
-            const required = ['teacher','task','type','repetition','time','importance'];
+            const required = ['task','type','repetition','time','importance'];
             const missing  = required.filter(r => col(r) === -1);
             if (missing.length > 0) { showAddCsvError(`Missing required columns: ${missing.join(', ')}`); return; }
 
-            const teacher    = get('teacher');
+            const teacher    = get('teacher'); // optional
             const task       = get('task');
             const type       = get('type').toLowerCase();
             const repetition = get('repetition').toLowerCase();
             const timeVal    = parseInt(get('time'));
             const impVal     = parseInt(get('importance'));
-            const dow        = get('due_day_of_week');
             const month      = get('due_month');
             const dayVal     = parseInt(get('due_day')) || 1;
+            const yearVal    = parseInt(get('due_year')) || new Date().getFullYear();
             const tagName    = get('tag');
-            const tagColor   = get('tag_color');  // may be '' if column absent (old file)
+            const tagColor   = get('tag_color');
             const timeSpent  = Math.max(0, parseInt(get('time_spent')) || 0);
 
-            // Validate
             const errors = [];
-            if (!teacher)                              errors.push('teacher is empty');
             if (!task)                                 errors.push('task is empty');
             if (!VALID_TYPES.has(type))                errors.push(`type "${type}" must be "definite" or "indefinite"`);
             if (!VALID_REPS.has(repetition))           errors.push(`repetition "${repetition}" must be "once", "daily", or "weekly"`);
             if (isNaN(timeVal) || timeVal <= 0)        errors.push('time must be a positive integer');
             if (isNaN(impVal) || impVal < 1 || impVal > 5) errors.push('importance must be 1–5');
             if (type === 'definite') {
-                if (!VALID_DAYS.has(dow))              errors.push(`due_day_of_week "${dow}" is not a valid 3-letter day`);
                 if (!VALID_MONTHS.has(month))          errors.push(`due_month "${month}" is not a valid 3-letter month`);
                 if (isNaN(dayVal) || dayVal < 1 || dayVal > 31) errors.push('due_day must be 1–31');
+                if (isNaN(yearVal) || yearVal < 2020)  errors.push('due_year must be 2020 or later');
             }
             if (errors.length > 0) { showAddCsvError('Error: ' + errors[0]); return; }
 
-            // ── All valid — populate the form ──────────────
             document.getElementById('teacher').value = teacher;
             document.getElementById('task').value    = task;
 
@@ -1833,19 +1810,16 @@
             toggleDateInput();
 
             if (type === 'definite') {
-                document.getElementById('dayOfWeek').value = dow;
-                document.getElementById('month').value     = month;
-                document.getElementById('day').value       = dayVal;
+                document.getElementById('month').value = month;
+                document.getElementById('day').value   = dayVal;
+                document.getElementById('year').value  = yearVal;
+                updateDayOfWeek();
             }
 
             document.getElementById('repetition').value = repetition;
             document.getElementById('time').value        = timeVal;
             document.getElementById('importance').value  = impVal;
 
-            // Tag resolution:
-            //   1. If a tag with this name already exists → use it, ignore tag_color
-            //   2. If tag_color is a valid hex value → create tag with that colour
-            //   3. Otherwise (old file, no tag_color column) → create with default colour
             if (tagName) {
                 const existing = dataManager.getAllTags().find(t => t.name.toLowerCase() === tagName.toLowerCase());
                 if (existing) {
@@ -1859,7 +1833,6 @@
             }
 
             showStatus('Form filled from CSV — review and click "Add Assignment" to save.');
-            // Clear the file input so the same file can be re-uploaded if needed
             document.getElementById('add-csv-file').value = '';
         }
 
@@ -1871,7 +1844,6 @@
 
         function csvEscape(value) {
             const str = String(value ?? '');
-            // Wrap in quotes if the value contains a comma, double-quote, or newline
             if (str.includes(',') || str.includes('"') || str.includes('\n')) {
                 return '"' + str.replace(/"/g, '""') + '"';
             }
@@ -1881,7 +1853,6 @@
         function exportFormAsCsv() {
             showExportCsvError('');
 
-            const VALID_DAYS   = new Set(['Sun','Mon','Tue','Wed','Thu','Fri','Sat']);
             const VALID_MONTHS = new Set(['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']);
 
             const teacher    = document.getElementById('teacher').value.trim();
@@ -1890,20 +1861,18 @@
             const repetition = document.getElementById('repetition').value;
             const timeVal    = parseInt(document.getElementById('time').value);
             const impVal     = parseInt(document.getElementById('importance').value);
-            const dow        = document.getElementById('dayOfWeek').value;
             const month      = document.getElementById('month').value;
             const dayVal     = parseInt(document.getElementById('day').value);
+            const yearVal    = parseInt(document.getElementById('year').value);
 
-            // Validate required fields
             const errors = [];
-            if (!teacher)                              errors.push('Teacher is empty');
             if (!task)                                 errors.push('Assignment (task) is empty');
             if (isNaN(timeVal) || timeVal <= 0)        errors.push('Estimated time must be a positive number');
             if (isNaN(impVal)  || impVal < 1 || impVal > 5) errors.push('Importance must be 1–5');
             if (type === 'definite') {
-                if (!VALID_DAYS.has(dow))              errors.push(`Due day of week "${dow}" is invalid`);
-                if (!VALID_MONTHS.has(month))          errors.push(`Due month "${month}" is invalid`);
-                if (isNaN(dayVal) || dayVal < 1 || dayVal > 31) errors.push('Due day must be 1–31');
+                if (!VALID_MONTHS.has(month))          errors.push(`Month "${month}" is invalid`);
+                if (isNaN(dayVal) || dayVal < 1 || dayVal > 31) errors.push('Day must be 1–31');
+                if (isNaN(yearVal) || yearVal < 2020)  errors.push('Year must be 2020 or later');
             }
 
             if (errors.length > 0) {
@@ -1911,19 +1880,18 @@
                 return;
             }
 
-            // Resolve tag name and colour from selected tag id
             const tag      = addFormSelectedTagId ? dataManager.getTag(addFormSelectedTagId) : null;
             const tagName  = tag?.name  ?? '';
             const tagColor = tag?.color ?? '';
 
-            const header = 'teacher,task,type,due_day_of_week,due_month,due_day,repetition,time,importance,tag,tag_color,time_spent';
+            const header = 'teacher,task,type,due_month,due_day,due_year,repetition,time,importance,tag,tag_color,time_spent';
             const row = [
                 csvEscape(teacher),
                 csvEscape(task),
                 csvEscape(type),
-                type === 'definite' ? csvEscape(dow)    : '',
-                type === 'definite' ? csvEscape(month)  : '',
-                type === 'definite' ? csvEscape(dayVal) : '',
+                type === 'definite' ? csvEscape(month)   : '',
+                type === 'definite' ? csvEscape(dayVal)  : '',
+                type === 'definite' ? csvEscape(yearVal) : '',
                 csvEscape(repetition),
                 csvEscape(timeVal),
                 csvEscape(impVal),
@@ -1936,7 +1904,6 @@
             const blob = new Blob([csv], { type: 'text/csv' });
             const url  = URL.createObjectURL(blob);
             const a    = document.createElement('a');
-            // Use a sanitised snippet of the task as the filename
             const safeName = task.replace(/[^a-z0-9]/gi, '_').slice(0, 40) || 'assignment';
             a.href     = url;
             a.download = `assignment_${safeName}.csv`;
@@ -1945,19 +1912,21 @@
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            // Clear the form
             document.getElementById('add-assignment-form').reset();
             addFormSelectedTagId = null;
             renderTagChips('add');
             document.getElementById('add-csv-file').value = '';
             toggleDateInput();
+            const today = new Date();
+            const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            document.getElementById('month').value = mNames[today.getMonth()];
+            document.getElementById('day').value   = today.getDate();
+            document.getElementById('year').value  = today.getFullYear();
+            updateDayOfWeek();
 
             showStatus('Assignment exported as CSV and form cleared!');
         }
 
-        // ─────────────────────────────────────────────
-        //  Assignment popup (view → export)
-        // ─────────────────────────────────────────────
         let _popupAssignment = null;
         let _popupIndex      = null;
 
@@ -2026,19 +1995,15 @@
             showStatus('Assignment exported as CSV!');
         }
 
-        // ─────────────────────────────────────────────
-        //  Init
-        // ─────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
             const today  = new Date();
             const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-            const dNames = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
-            document.getElementById('month').value     = mNames[today.getMonth()];
-            document.getElementById('day').value       = today.getDate();
-            document.getElementById('dayOfWeek').value = dNames[today.getDay()];
+            document.getElementById('month').value = mNames[today.getMonth()];
+            document.getElementById('day').value   = today.getDate();
+            document.getElementById('year').value  = today.getFullYear();
+            updateDayOfWeek();
             showSection('main-menu');
         });
     </script>
 </body>
 </html>
-
