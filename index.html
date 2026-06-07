@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-W0HRHTEML2"></script>
+	<!-- Google tag --> 
 	<script>
 		window.dataLayer = window.dataLayer || [];
   		function gtag(){dataLayer.push(arguments);}
@@ -10,6 +9,7 @@
 
   		gtag('config', 'G-W0HRHTEML2');
 	</script>
+	
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Turtle, the Consistency Manager</title>
@@ -446,6 +446,8 @@
             padding: 28px 28px 22px;
             max-width: 480px;
             width: 90%;
+            max-height: 88vh;
+            overflow-y: auto;
             box-shadow: 0 20px 50px rgba(0,0,0,0.25);
             animation: slideIn 0.2s ease-out;
             position: relative;
@@ -518,14 +520,117 @@
 
         <div id="status-message" class="status-message"></div>
 
-        <!-- Assignment popup (view → export) -->
+        <!-- Assignment popup (view → export / edit / remove) -->
         <div id="assignment-popup" class="popup-overlay" onclick="closePopupOnOverlay(event)">
             <div class="popup-box">
                 <button class="popup-close" onclick="closeAssignmentPopup()" title="Close">×</button>
-                <div class="popup-card-wrap" id="popup-card-wrap"></div>
-                <div class="popup-actions">
-                    <button class="popup-cancel-btn" onclick="closeAssignmentPopup()">Close</button>
-                    <button class="popup-export-btn" onclick="exportPopupAssignment()">⬇ Export as CSV</button>
+
+                <!-- View panel -->
+                <div id="popup-view-panel">
+                    <div class="popup-card-wrap" id="popup-card-wrap"></div>
+                    <div class="popup-actions">
+                        <button class="popup-cancel-btn" onclick="closeAssignmentPopup()">Close</button>
+                        <button class="popup-cancel-btn" style="color:#dc3545;" onclick="openPopupRemovePanel()">🗑 Remove</button>
+                        <button class="popup-cancel-btn" style="color:#667eea;" onclick="openPopupEditPanel()">✏️ Edit</button>
+                        <button class="popup-export-btn" onclick="exportPopupAssignment()">⬇ Export as CSV</button>
+                    </div>
+                </div>
+
+                <!-- Edit panel (injected inline) -->
+                <div id="popup-edit-panel" style="display:none;">
+                    <h3 style="margin-bottom:16px;color:#333;">Edit Assignment</h3>
+                    <form id="popup-edit-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pe-teacher">Teacher: <span style="font-weight:400;color:#888;font-size:13px;">(optional)</span></label>
+                                <input type="text" id="pe-teacher" name="teacher">
+                            </div>
+                            <div class="form-group">
+                                <label for="pe-type">Type:</label>
+                                <select id="pe-type" name="type" onchange="togglePopupDateInput()" required>
+                                    <option value="definite">Definite (has due date)</option>
+                                    <option value="indefinite">Indefinite (no due date)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="pe-task">Assigned Activity:</label>
+                            <textarea id="pe-task" name="task" rows="3" required></textarea>
+                        </div>
+                        <div id="pe-date-group" class="form-group">
+                            <label>Due Date:</label>
+                            <div class="date-input" style="grid-template-columns:1fr 1fr 1fr;">
+                                <select id="pe-month" name="month" onchange="updatePopupDayOfWeek()">
+                                    <option value="Jan">January</option><option value="Feb">February</option>
+                                    <option value="Mar">March</option><option value="Apr">April</option>
+                                    <option value="May">May</option><option value="Jun">June</option>
+                                    <option value="Jul">July</option><option value="Aug">August</option>
+                                    <option value="Sep">September</option><option value="Oct">October</option>
+                                    <option value="Nov">November</option><option value="Dec">December</option>
+                                </select>
+                                <input type="number" id="pe-day" name="day" min="1" max="31" placeholder="Day" oninput="updatePopupDayOfWeek()">
+                                <input type="number" id="pe-year" name="year" min="2020" max="2100" placeholder="Year" oninput="updatePopupDayOfWeek()">
+                            </div>
+                            <p id="pe-dow-display" style="margin-top:8px;font-size:13px;color:#667eea;font-weight:600;min-height:18px;"></p>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pe-repetition">Repetition:</label>
+                                <select id="pe-repetition" name="repetition" required>
+                                    <option value="once">One-time</option>
+                                    <option value="daily">Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="pe-time">Estimated Time (minutes):</label>
+                                <input type="number" id="pe-time" name="time" min="1" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="pe-importance">Importance (1-5):</label>
+                                <select id="pe-importance" name="importance" required>
+                                    <option value="1">1 - Very Low Priority</option>
+                                    <option value="2">2 - Low Priority</option>
+                                    <option value="3">3 - Medium Priority</option>
+                                    <option value="4">4 - High Priority</option>
+                                    <option value="5">5 - Very High Priority</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="pe-time-spent">Time Spent (minutes):</label>
+                                <input type="number" id="pe-time-spent" name="timeSpent" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Category / Tag:</label>
+                            <div class="tag-section">
+                                <div class="tag-chips-row" id="pe-tag-chips">
+                                    <span style="font-size:13px;color:#aaa;">No tags yet</span>
+                                </div>
+                                <div class="new-tag-row">
+                                    <input type="text" id="pe-new-tag-name" placeholder="New tag name…" maxlength="30">
+                                    <input type="color" id="pe-new-tag-color" class="tag-color-swatch" value="#667eea" title="Pick tag colour">
+                                    <button type="button" class="add-tag-btn" onclick="createTag('pe')">+ Add Tag</button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                    <div class="popup-actions" style="margin-top:12px;">
+                        <button class="popup-cancel-btn" onclick="closePopupEditPanel()">← Back</button>
+                        <button class="popup-export-btn" onclick="savePopupEdit()">Save Changes</button>
+                    </div>
+                </div>
+
+                <!-- Remove confirm panel -->
+                <div id="popup-remove-panel" style="display:none;">
+                    <div id="popup-remove-card-wrap" style="margin-bottom:16px;"></div>
+                    <p style="font-size:14px;font-weight:600;color:#dc3545;margin-bottom:16px;">⚠️ Are you sure you want to permanently remove this assignment? This cannot be undone.</p>
+                    <div class="popup-actions">
+                        <button class="popup-cancel-btn" onclick="closePopupRemovePanel()">← Back</button>
+                        <button class="popup-export-btn" style="background:linear-gradient(45deg,#dc3545,#c82333);" onclick="confirmPopupRemove()">Remove Assignment</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -537,8 +642,6 @@
                 <button class="nav-btn" onclick="showSection('plan-day')">Plan Day</button>
                 <button class="nav-btn" onclick="showSection('log-time')">Log Time</button>
                 <button class="nav-btn" onclick="showSection('view-assignments')">View Assignments</button>
-                <button class="nav-btn" onclick="showSection('edit-assignment')">Edit Assignment</button>
-                <button class="nav-btn" onclick="showSection('remove-assignment')">Remove Assignment</button>
                 <button class="nav-btn" onclick="showSection('backup-restore')">Save Data</button>
             </div>
         </div>
@@ -1042,6 +1145,7 @@
         let viewFilterTagId       = 'ALL';
 
         function renderTagChips(context) {
+            if (context === 'pe') { renderPopupTagChips(); return; }
             const chipsRow  = document.getElementById(context + '-tag-chips');
             const tags      = dataManager.getAllTags();
             const selectedId = context === 'add' ? addFormSelectedTagId : editFormSelectedTagId;
@@ -1067,6 +1171,11 @@
         }
 
         function toggleTagSelection(tagId, context) {
+            if (context === 'pe') {
+                peSelectedTagId = (peSelectedTagId === tagId) ? null : tagId;
+                renderPopupTagChips();
+                return;
+            }
             if (context === 'add') {
                 addFormSelectedTagId = (addFormSelectedTagId === tagId) ? null : tagId;
             } else {
@@ -1076,8 +1185,12 @@
         }
 
         function createTag(context) {
-            const nameInput  = document.getElementById(context === 'add' ? 'new-tag-name' : 'edit-new-tag-name');
-            const colorInput = document.getElementById(context === 'add' ? 'new-tag-color' : 'edit-new-tag-color');
+            const nameInput  = context === 'add' ? document.getElementById('new-tag-name')
+                             : context === 'edit' ? document.getElementById('edit-new-tag-name')
+                             : document.getElementById('pe-new-tag-name');
+            const colorInput = context === 'add' ? document.getElementById('new-tag-color')
+                             : context === 'edit' ? document.getElementById('edit-new-tag-color')
+                             : document.getElementById('pe-new-tag-color');
             const name = nameInput.value.trim();
 
             if (!name) { showStatus('Please enter a tag name', true); return; }
@@ -1089,11 +1202,13 @@
             const newId = dataManager.addTag(name, colorInput.value);
             nameInput.value = '';
 
-            if (context === 'add') addFormSelectedTagId = newId;
-            else editFormSelectedTagId = newId;
+            if (context === 'add')       addFormSelectedTagId  = newId;
+            else if (context === 'edit') editFormSelectedTagId = newId;
+            else                         peSelectedTagId       = newId;
 
             renderTagChips(context);
             renderTagChips(context === 'add' ? 'edit' : 'add');
+            renderPopupTagChips();
         }
 
         function deleteTag(tagId, context) {
@@ -1103,8 +1218,10 @@
             dataManager._save();
             if (addFormSelectedTagId  === tagId) addFormSelectedTagId  = null;
             if (editFormSelectedTagId === tagId) editFormSelectedTagId = null;
+            if (peSelectedTagId       === tagId) peSelectedTagId       = null;
             renderTagChips('add');
             renderTagChips('edit');
+            renderPopupTagChips();
         }
 
         function tagDisplayHtml(tagId) {
@@ -1927,8 +2044,19 @@
             showStatus('Assignment exported as CSV and form cleared!');
         }
 
+        // ─────────────────────────────────────────────
+        //  Assignment popup (view → export / edit / remove)
+        // ─────────────────────────────────────────────
         let _popupAssignment = null;
         let _popupIndex      = null;
+        let peSelectedTagId  = null;
+
+        // ── panel helpers ────────────────────────────
+        function _showPopupPanel(id) {
+            ['popup-view-panel','popup-edit-panel','popup-remove-panel'].forEach(p => {
+                document.getElementById(p).style.display = p === id ? 'block' : 'none';
+            });
+        }
 
         function openAssignmentPopup(assignment, index) {
             _popupAssignment = assignment;
@@ -1936,6 +2064,7 @@
             const wrap = document.getElementById('popup-card-wrap');
             wrap.innerHTML = '';
             wrap.appendChild(createAssignmentCard(assignment, index, false));
+            _showPopupPanel('popup-view-panel');
             document.getElementById('assignment-popup').classList.add('open');
         }
 
@@ -1943,6 +2072,7 @@
             document.getElementById('assignment-popup').classList.remove('open');
             _popupAssignment = null;
             _popupIndex      = null;
+            peSelectedTagId  = null;
         }
 
         function closePopupOnOverlay(event) {
@@ -1951,26 +2081,166 @@
             }
         }
 
+        // ── Edit panel ───────────────────────────────
+        function togglePopupDateInput() {
+            document.getElementById('pe-date-group').style.display =
+                document.getElementById('pe-type').value === 'indefinite' ? 'none' : 'block';
+        }
+
+        function updatePopupDayOfWeek() {
+            const month = document.getElementById('pe-month').value;
+            const day   = parseInt(document.getElementById('pe-day').value);
+            const year  = parseInt(document.getElementById('pe-year').value);
+            const disp  = document.getElementById('pe-dow-display');
+            if (month && day >= 1 && day <= 31 && year >= 2020 && year <= 2100) {
+                const d = convertToDate(month, day, year);
+                if (!isNaN(d.getTime())) { disp.textContent = '📅 ' + DOW_NAMES[d.getDay()]; return; }
+            }
+            disp.textContent = '';
+        }
+
+        function renderPopupTagChips() {
+            const row  = document.getElementById('pe-tag-chips');
+            const tags = dataManager.getAllTags();
+            if (tags.length === 0) {
+                row.innerHTML = '<span style="font-size:13px;color:#aaa;">No tags yet — create one below</span>';
+                return;
+            }
+            row.innerHTML = '';
+            tags.forEach(tag => {
+                const chip = document.createElement('span');
+                chip.className = 'tag-chip' + (tag.id === peSelectedTagId ? ' selected' : '');
+                chip.style.background = tag.color;
+                chip.innerHTML = `${escHtml(tag.name)} <span class="tag-remove" title="Delete this tag" onclick="deleteTag('${tag.id}','pe')">×</span>`;
+                chip.addEventListener('click', e => {
+                    if (e.target.classList.contains('tag-remove')) return;
+                    peSelectedTagId = (peSelectedTagId === tag.id) ? null : tag.id;
+                    renderPopupTagChips();
+                });
+                row.appendChild(chip);
+            });
+        }
+
+        function openPopupEditPanel() {
+            const a = _popupAssignment;
+            if (!a) return;
+
+            document.getElementById('pe-teacher').value    = a.teacher || '';
+            document.getElementById('pe-task').value       = a.task;
+            document.getElementById('pe-type').value       = a.type;
+            document.getElementById('pe-repetition').value = a.repetitionType;
+            document.getElementById('pe-time').value       = a.time;
+            document.getElementById('pe-importance').value = a.importance;
+            document.getElementById('pe-time-spent').value = a.timeSpent;
+
+            if (a.type === 'definite') {
+                const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+                const d   = new Date(a.dueDate);
+                document.getElementById('pe-month').value = mon[d.getMonth()];
+                document.getElementById('pe-day').value   = d.getDate();
+                document.getElementById('pe-year').value  = d.getFullYear();
+                document.getElementById('pe-date-group').style.display = 'block';
+                updatePopupDayOfWeek();
+            } else {
+                document.getElementById('pe-date-group').style.display = 'none';
+                document.getElementById('pe-dow-display').textContent  = '';
+            }
+
+            peSelectedTagId = a.tagId || null;
+            renderPopupTagChips();
+            _showPopupPanel('popup-edit-panel');
+        }
+
+        function closePopupEditPanel() {
+            _showPopupPanel('popup-view-panel');
+        }
+
+        async function savePopupEdit() {
+            const idx = _popupIndex;
+            if (idx === null || idx === undefined) return;
+
+            const teacher = document.getElementById('pe-teacher').value.trim();
+            const task    = document.getElementById('pe-task').value.trim();
+            const type    = document.getElementById('pe-type').value;
+            const rep     = document.getElementById('pe-repetition').value;
+            const time    = parseInt(document.getElementById('pe-time').value);
+            const imp     = parseInt(document.getElementById('pe-importance').value);
+            const ts      = parseInt(document.getElementById('pe-time-spent').value) || 0;
+
+            if (!task)                             { showStatus('Assigned Activity cannot be empty', true); return; }
+            if (isNaN(time) || time <= 0)          { showStatus('Estimated time must be a positive number', true); return; }
+            if (isNaN(imp) || imp < 1 || imp > 5)  { showStatus('Importance must be 1–5', true); return; }
+
+            let dueDate;
+            if (type === 'definite') {
+                const mon  = document.getElementById('pe-month').value;
+                const day  = parseInt(document.getElementById('pe-day').value);
+                const year = parseInt(document.getElementById('pe-year').value);
+                if (!mon || isNaN(day) || isNaN(year)) { showStatus('Please fill in all date fields', true); return; }
+                dueDate = convertToDate(mon, day, year);
+            } else {
+                dueDate = convertToDate("Jan", 1, 2025);
+            }
+
+            const orig    = await dataManager.getAssignment(idx);
+            const weeklyTS = orig ? (orig.weeklyTimeSpent ?? 0) : 0;
+            const updated  = new Assignment(teacher, task, type, dueDate, rep, time, imp, ts, peSelectedTagId, weeklyTS);
+            await dataManager.updateAssignment(idx, updated);
+            showStatus('Assignment updated successfully!');
+            closeAssignmentPopup();
+            if (document.getElementById('view-assignments').classList.contains('active')) {
+                renderFilterBar();
+                loadAssignments();
+            }
+        }
+
+        // ── Remove panel ─────────────────────────────
+        function openPopupRemovePanel() {
+            const wrap = document.getElementById('popup-remove-card-wrap');
+            wrap.innerHTML = '';
+            wrap.appendChild(createAssignmentCard(_popupAssignment, _popupIndex, false));
+            _showPopupPanel('popup-remove-panel');
+        }
+
+        function closePopupRemovePanel() {
+            _showPopupPanel('popup-view-panel');
+        }
+
+        async function confirmPopupRemove() {
+            const idx = _popupIndex;
+            if (idx === null || idx === undefined) return;
+            await dataManager.removeAssignment(idx);
+            showStatus('Assignment removed successfully!');
+            closeAssignmentPopup();
+            if (document.getElementById('view-assignments').classList.contains('active')) {
+                renderFilterBar();
+                loadAssignments();
+            }
+        }
+
+        // ── Export ───────────────────────────────────
         function exportPopupAssignment() {
             const a = _popupAssignment;
             if (!a) return;
 
-            const dow   = a.type === 'definite' ? formatDueDate(a).split(' ')[0] : '';
-            const month = a.type === 'definite' ? formatDueDate(a).split(' ')[1] : '';
-            const day   = a.type === 'definite' ? formatDueDate(a).split(' ')[2] : '';
+            const d     = a.type === 'definite' ? new Date(a.dueDate) : null;
+            const mon   = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const month = d ? mon[d.getMonth()]    : '';
+            const day   = d ? d.getDate()          : '';
+            const year  = d ? d.getFullYear()      : '';
 
             const tag      = a.tagId ? dataManager.getTag(a.tagId) : null;
             const tagName  = tag?.name  ?? '';
             const tagColor = tag?.color ?? '';
 
-            const header = 'teacher,task,type,due_day_of_week,due_month,due_day,repetition,time,importance,tag,tag_color,time_spent';
+            const header = 'teacher,task,type,due_month,due_day,due_year,repetition,time,importance,tag,tag_color,time_spent';
             const row = [
                 csvEscape(a.teacher),
                 csvEscape(a.task),
                 csvEscape(a.type),
-                csvEscape(dow),
                 csvEscape(month),
                 csvEscape(day),
+                csvEscape(year),
                 csvEscape(a.repetitionType),
                 csvEscape(a.time),
                 csvEscape(a.importance),
