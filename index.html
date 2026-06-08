@@ -9,6 +9,7 @@
 
   		gtag('config', 'G-W0HRHTEML2');
 	</script>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Turtle, the Consistency Manager</title>
@@ -507,10 +508,140 @@
         .section-header h2 {
             margin-bottom: 0;
         }
+        /* ── STREAK BANNER ── */
+        .streak-banner {
+            width: 100%;
+            margin-bottom: 22px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            border-radius: 16px;
+            padding: 16px 20px 14px;
+            box-sizing: border-box;
+            position: relative;
+            overflow: hidden;
+        }
+        .streak-banner::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at 70% 50%, rgba(102,126,234,0.15) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .streak-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+        .streak-label {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: rgba(255,255,255,0.5);
+        }
+        .streak-count {
+            font-size: 13px;
+            font-weight: 700;
+            color: rgba(255,255,255,0.85);
+        }
+        .streak-count span {
+            font-size: 22px;
+            font-weight: 800;
+            background: linear-gradient(45deg, #f9ca24, #f0932b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-right: 3px;
+        }
+        .streak-timeline {
+            display: flex;
+            align-items: center;
+            gap: 0;
+            width: 100%;
+        }
+        .streak-day {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            position: relative;
+        }
+        .streak-day:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            top: 10px;
+            right: -50%;
+            width: 100%;
+            height: 2px;
+            background: rgba(255,255,255,0.1);
+            z-index: 0;
+        }
+        .streak-day.filled:not(:last-child)::after {
+            background: linear-gradient(90deg, #f9ca24, #f0932b);
+        }
+        .streak-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.1);
+            border: 2px solid rgba(255,255,255,0.15);
+            position: relative;
+            z-index: 1;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 9px;
+        }
+        .streak-day.filled .streak-dot {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            border-color: #f9ca24;
+            box-shadow: 0 0 8px rgba(249,202,36,0.5);
+        }
+        .streak-day.today .streak-dot {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            border-color: #667eea;
+            box-shadow: 0 0 12px rgba(102,126,234,0.6);
+        }
+        .streak-day.today.filled .streak-dot {
+            background: linear-gradient(135deg, #f9ca24, #f0932b);
+            border-color: #f9ca24;
+            box-shadow: 0 0 14px rgba(249,202,36,0.7);
+        }
+        .streak-day-label {
+            font-size: 9px;
+            font-weight: 600;
+            color: rgba(255,255,255,0.35);
+            letter-spacing: 0.05em;
+        }
+        .streak-day.filled .streak-day-label { color: rgba(255,255,255,0.6); }
+        .streak-day.today .streak-day-label   { color: rgba(255,255,255,0.85); }
+        .streak-message {
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.5);
+            text-align: center;
+            font-style: italic;
+        }
+        .streak-message.active { color: rgba(249,202,36,0.8); }
     </style>
 </head>
 <body>
     <div class="container">
+
+        <!-- Streak banner -->
+        <div class="streak-banner" id="streak-banner">
+            <div class="streak-top">
+                <span class="streak-label">🔥 Practice Streak</span>
+                <span class="streak-count"><span id="streak-number">0</span> days</span>
+            </div>
+            <div class="streak-timeline" id="streak-timeline"></div>
+            <div class="streak-message" id="streak-message">Log time or generate a plan to start your streak!</div>
+        </div>
+
         <h1>Turtle</h1>
 
         <div style="background:#e65c00;color:white;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:14px;line-height:1.5;">
@@ -988,9 +1119,10 @@
         // ─────────────────────────────────────────────
         //  Data Manager  (localStorage-backed)
         // ─────────────────────────────────────────────
-        const LS_KEY      = 'time_manager_data';
-        const LS_WEEK_KEY = 'time_manager_week';
-        const LS_DAY_KEY  = 'time_manager_day';  // stores YYYY-MM-DD of last daily reset
+        const LS_KEY        = 'time_manager_data';
+        const LS_WEEK_KEY   = 'time_manager_week';
+        const LS_DAY_KEY    = 'time_manager_day';  // stores YYYY-MM-DD of last daily reset
+        const LS_STREAK_KEY = 'time_manager_streak'; // { count, lastDate } JSON
 
         class DataManager {
             constructor() {
@@ -1580,6 +1712,7 @@
                     await dataManager.updateTimeSpent(i, item.recommendedTime);
                 }
             }
+            if (planned.length > 0) recordStreakActivity();
         }
 
         function displayPlanResults(planned) {
@@ -1759,6 +1892,7 @@
                     await dataManager.updateTimeSpent(idx, time);
                 }
                 showStatus('Time logged successfully!');
+                recordStreakActivity();
                 document.getElementById('assignment-select').value = '';
                 document.getElementById('time-spent').value = '';
                 document.getElementById('log-preview').style.display  = 'none';
@@ -1845,6 +1979,7 @@
                 localStorage.removeItem(LS_KEY);
                 localStorage.removeItem(LS_WEEK_KEY);
                 localStorage.removeItem(LS_DAY_KEY);
+                localStorage.removeItem(LS_STREAK_KEY);
                 addFormSelectedTagId  = null;
                 editFormSelectedTagId = null;
                 viewFilterTagId       = 'ALL';
@@ -2313,6 +2448,121 @@
             showStatus('Assignment exported as CSV!');
         }
 
+        // ─────────────────────────────────────────────
+        //  Streak system
+        // ─────────────────────────────────────────────
+        function _todayKey() {
+            return new Date().toISOString().slice(0, 10);
+        }
+
+        function _offsetKey(daysAgo) {
+            const d = new Date();
+            d.setDate(d.getDate() - daysAgo);
+            return d.toISOString().slice(0, 10);
+        }
+
+        function loadStreak() {
+            try {
+                const raw = localStorage.getItem(LS_STREAK_KEY);
+                return raw ? JSON.parse(raw) : { count: 0, lastDate: null };
+            } catch { return { count: 0, lastDate: null }; }
+        }
+
+        function saveStreak(streak) {
+            localStorage.setItem(LS_STREAK_KEY, JSON.stringify(streak));
+        }
+
+        function recordStreakActivity() {
+            const today  = _todayKey();
+            const streak = loadStreak();
+
+            if (streak.lastDate === today) {
+                // Already active today — no change
+            } else if (streak.lastDate === _offsetKey(1)) {
+                // Yesterday — extend
+                streak.count++;
+                streak.lastDate = today;
+            } else {
+                // Gap or first ever — reset to 1
+                streak.count    = 1;
+                streak.lastDate = today;
+            }
+
+            saveStreak(streak);
+            renderStreak();
+        }
+
+        function renderStreak() {
+            const streak   = loadStreak();
+            const today    = _todayKey();
+            const count    = streak.count;
+            const lastDate = streak.lastDate;
+
+            document.getElementById('streak-number').textContent = count;
+
+            const timeline = document.getElementById('streak-timeline');
+            timeline.innerHTML = '';
+            const DOW_SHORT_S = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+            for (let i = 6; i >= 0; i--) {
+                const d   = new Date();
+                d.setDate(d.getDate() - i);
+                const key     = d.toISOString().slice(0, 10);
+                const label   = DOW_SHORT_S[d.getDay()];
+                const isToday = key === today;
+
+                let filled = false;
+                if (lastDate && count > 0) {
+                    const last  = new Date(lastDate + 'T12:00:00');
+                    const start = new Date(last);
+                    start.setDate(start.getDate() - (count - 1));
+                    const dayDate = new Date(key + 'T12:00:00');
+                    filled = dayDate >= start && dayDate <= last;
+                }
+
+                const dayEl = document.createElement('div');
+                dayEl.className = 'streak-day'
+                    + (filled  ? ' filled' : '')
+                    + (isToday ? ' today'  : '');
+
+                const dot = document.createElement('div');
+                dot.className = 'streak-dot';
+                if (filled) dot.textContent = '✓';
+
+                const lbl = document.createElement('div');
+                lbl.className = 'streak-day-label';
+                lbl.textContent = isToday ? 'TODAY' : label;
+
+                dayEl.appendChild(dot);
+                dayEl.appendChild(lbl);
+                timeline.appendChild(dayEl);
+            }
+
+            const msg = document.getElementById('streak-message');
+            if (!count || !lastDate) {
+                msg.textContent = 'Log time or generate a plan to start your streak!';
+                msg.className   = 'streak-message';
+            } else if (lastDate !== today) {
+                if (lastDate === _offsetKey(1)) {
+                    msg.textContent = `${count}-day streak — keep it going today!`;
+                    msg.className   = 'streak-message active';
+                } else {
+                    msg.textContent = 'Your streak ended. Start a new one today!';
+                    msg.className   = 'streak-message';
+                }
+            } else {
+                let text = `${count} day${count === 1 ? '' : 's'} strong — great work!`;
+                if (count >= 30) text = `🏆 ${count} days! A true master!`;
+                else if (count >= 14) text = `🔥 ${count} days — you're unstoppable!`;
+                else if (count >= 7)  text = `🌟 ${count}-day streak — incredible consistency!`;
+                msg.textContent = text;
+                msg.className   = 'streak-message active';
+            }
+        }
+
+        // ─────────────────────────────────────────────
+        //  Init
+        // ─────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', function() {
             const today  = new Date();
             const mNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2320,6 +2570,7 @@
             document.getElementById('day').value   = today.getDate();
             document.getElementById('year').value  = today.getFullYear();
             updateDayOfWeek();
+            renderStreak();
             showSection('main-menu');
         });
     </script>
