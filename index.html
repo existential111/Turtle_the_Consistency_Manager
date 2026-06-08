@@ -9,7 +9,6 @@
 
   		gtag('config', 'G-W0HRHTEML2');
 	</script>
-	
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Turtle, the Consistency Manager</title>
@@ -971,7 +970,7 @@
         //  Assignment class
         // ─────────────────────────────────────────────
         class Assignment {
-            constructor(teacher, task, type, dueDate, repetitionType, time, importance, timeSpent = 0, tagId = null, weeklyTimeSpent = 0) {
+            constructor(teacher, task, type, dueDate, repetitionType, time, importance, timeSpent = 0, tagId = null, weeklyTimeSpent = 0, dailyTimeSpent = 0) {
                 this.teacher          = teacher;
                 this.task             = task;
                 this.type             = type;
@@ -981,7 +980,8 @@
                 this.importance       = importance;
                 this.timeSpent        = timeSpent;
                 this.tagId            = tagId;
-                this.weeklyTimeSpent  = weeklyTimeSpent;
+                this.weeklyTimeSpent  = weeklyTimeSpent; // resets every Monday
+                this.dailyTimeSpent   = dailyTimeSpent;  // resets every day
             }
         }
 
@@ -990,6 +990,7 @@
         // ─────────────────────────────────────────────
         const LS_KEY      = 'time_manager_data';
         const LS_WEEK_KEY = 'time_manager_week';
+        const LS_DAY_KEY  = 'time_manager_day';  // stores YYYY-MM-DD of last daily reset
 
         class DataManager {
             constructor() {
@@ -1002,6 +1003,7 @@
                 };
                 this._load();
                 this._resetWeeklyIfNeeded();
+                this._resetDailyIfNeeded();
             }
 
             _load() {
@@ -1011,7 +1013,8 @@
                         const parsed = JSON.parse(raw);
                         this.assignments = (parsed.assignments || []).map(a => ({
                             ...a, dueDate: new Date(a.dueDate), tagId: a.tagId || null,
-                            weeklyTimeSpent: a.weeklyTimeSpent ?? 0
+                            weeklyTimeSpent: a.weeklyTimeSpent ?? 0,
+                            dailyTimeSpent:  a.dailyTimeSpent  ?? 0
                         }));
                         this.tags = parsed.tags || [];
                     } else {
@@ -1046,6 +1049,22 @@
                     });
                     if (changed) this._save();
                     localStorage.setItem(LS_WEEK_KEY, thisMondayKey);
+                }
+            }
+
+            _resetDailyIfNeeded() {
+                const todayKey    = new Date().toISOString().slice(0, 10);
+                const lastDayKey  = localStorage.getItem(LS_DAY_KEY) || '';
+                if (lastDayKey !== todayKey) {
+                    let changed = false;
+                    this.assignments.forEach(a => {
+                        if (a.repetitionType === 'daily' && (a.dailyTimeSpent ?? 0) > 0) {
+                            a.dailyTimeSpent = 0;
+                            changed = true;
+                        }
+                    });
+                    if (changed) this._save();
+                    localStorage.setItem(LS_DAY_KEY, todayKey);
                 }
             }
 
@@ -1100,6 +1119,14 @@
                 }
                 return false;
             }
+            async updateDailyTimeSpent(i, t) {
+                if (i >= 0 && i < this.assignments.length) {
+                    this.assignments[i].dailyTimeSpent = (this.assignments[i].dailyTimeSpent ?? 0) + t;
+                    this._save();
+                    return true;
+                }
+                return false;
+            }
             async updateAssignment(i, a) {
                 if (i >= 0 && i < this.assignments.length) {
                     this.assignments[i] = a;
@@ -1124,9 +1151,9 @@
                 try {
                     const parsed = JSON.parse(jsonString);
                     if (Array.isArray(parsed)) {
-                        this.assignments = parsed.map(a => ({ ...a, dueDate: new Date(a.dueDate), tagId: a.tagId || null, weeklyTimeSpent: a.weeklyTimeSpent ?? 0 }));
+                        this.assignments = parsed.map(a => ({ ...a, dueDate: new Date(a.dueDate), tagId: a.tagId || null, weeklyTimeSpent: a.weeklyTimeSpent ?? 0, dailyTimeSpent: a.dailyTimeSpent ?? 0 }));
                     } else {
-                        this.assignments = (parsed.assignments || []).map(a => ({ ...a, dueDate: new Date(a.dueDate), tagId: a.tagId || null, weeklyTimeSpent: a.weeklyTimeSpent ?? 0 }));
+                        this.assignments = (parsed.assignments || []).map(a => ({ ...a, dueDate: new Date(a.dueDate), tagId: a.tagId || null, weeklyTimeSpent: a.weeklyTimeSpent ?? 0, dailyTimeSpent: a.dailyTimeSpent ?? 0 }));
                         this.tags = parsed.tags || [];
                     }
                     this._save();
@@ -1431,7 +1458,9 @@
                     <strong>Estimated Time:</strong> ${assignment.time} minutes<br>
                     ${assignment.repetitionType === 'weekly'
                         ? `<strong>Time Spent This Week:</strong> ${assignment.weeklyTimeSpent ?? 0} / ${assignment.time} minutes<br>`
-                        : `<strong>Time Spent:</strong> ${assignment.timeSpent} minutes<br>`
+                        : assignment.repetitionType === 'daily'
+                            ? `<strong>Time Spent Today:</strong> ${assignment.dailyTimeSpent ?? 0} / ${assignment.time} minutes<br>`
+                            : `<strong>Time Spent:</strong> ${assignment.timeSpent} / ${assignment.time} minutes<br>`
                     }
                     <strong>Assignment #:</strong> ${index + 1}
                 </div>
@@ -1471,7 +1500,9 @@
             }
 
             const effectiveTimeSpent = assignments.map(a =>
-                a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) : a.timeSpent
+                a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) :
+                a.repetitionType === 'daily'  ? (a.dailyTimeSpent  ?? 0) :
+                a.timeSpent
             );
 
             const DAILY_BONUS = 200;
@@ -1487,7 +1518,9 @@
             let remainingTime = availableTime;
             const working = assignments.map((a, i) => ({ ...a, timeSpent: effectiveTimeSpent[i] }));
             const realTimeSpent = assignments.map((a, i) =>
-                a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) : a.timeSpent
+                a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0) :
+                a.repetitionType === 'daily'  ? (a.dailyTimeSpent  ?? 0) :
+                a.timeSpent
             );
             const planned     = [];
 
@@ -1534,6 +1567,19 @@
 
             displayPlanResults(planned);
             resultsDiv.style.display = 'block';
+
+            // Auto-log the recommended time for each planned assignment
+            for (const item of planned) {
+                const rep = item.assignment.repetitionType;
+                const i   = item.index - 1;
+                if (rep === 'weekly') {
+                    await dataManager.updateWeeklyTimeSpent(i, item.recommendedTime);
+                } else if (rep === 'daily') {
+                    await dataManager.updateDailyTimeSpent(i, item.recommendedTime);
+                } else {
+                    await dataManager.updateTimeSpent(i, item.recommendedTime);
+                }
+            }
         }
 
         function displayPlanResults(planned) {
@@ -1546,7 +1592,7 @@
             div.appendChild(title);
             planned.forEach(item => div.appendChild(createPlanCard(item.assignment, item.index, item.recommendedTime, item.realTimeSpent)));
             const note = document.createElement('p');
-            note.textContent = 'Note: Remember to log your time spent after completing assignments!';
+            note.textContent = 'Time has been automatically logged for each assignment above. If you end up spending a different amount of time, you can adjust it in Log Time.';
             note.style.cssText = 'margin-top:20px;font-style:italic;color:#666;';
             div.appendChild(note);
         }
@@ -1557,9 +1603,9 @@
             const dueDateString = formatDueDate(assignment);
             const isDaily  = assignment.repetitionType === "daily";
             const isWeekly = assignment.repetitionType === "weekly";
-            const timeSpentLine = isDaily  ? '' :
+            const timeSpentLine = isDaily  ? `<strong>Time Spent Today:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>` :
                                   isWeekly ? `<strong>Time Spent This Week:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>` :
-                                             `<strong>Time Spent:</strong> ${realTimeSpent} minutes<br>`;
+                                             `<strong>Time Spent:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>`;
             card.innerHTML = `
                 <div class="assignment-header">
                     <div class="assignment-title">Assignment ${index}: ${escHtml(assignment.task)}</div>
@@ -1703,11 +1749,12 @@
             if (idx >= assignments.length)   { showStatus('Invalid assignment selected', true); return; }
 
             const rep = assignments[idx].repetitionType;
-            if (rep === "daily") { showStatus(`Cannot log time for daily assignments`, true); return; }
 
             try {
                 if (rep === "weekly") {
                     await dataManager.updateWeeklyTimeSpent(idx, time);
+                } else if (rep === "daily") {
+                    await dataManager.updateDailyTimeSpent(idx, time);
                 } else {
                     await dataManager.updateTimeSpent(idx, time);
                 }
@@ -1797,6 +1844,7 @@
                 dataManager.clearAllAssignments();
                 localStorage.removeItem(LS_KEY);
                 localStorage.removeItem(LS_WEEK_KEY);
+                localStorage.removeItem(LS_DAY_KEY);
                 addFormSelectedTagId  = null;
                 editFormSelectedTagId = null;
                 viewFilterTagId       = 'ALL';
