@@ -508,6 +508,16 @@
         .section-header h2 {
             margin-bottom: 0;
         }
+        /* ── ACTIVITY LOG ── */
+        #activity-log-container {
+            background: #f8f9fa;
+            border: 2px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 20px;
+            max-height: 480px;
+            overflow-y: auto;
+        }
+
         /* ── STREAK BANNER ── */
         .streak-banner {
             width: 100%;
@@ -772,6 +782,7 @@
                 <button class="nav-btn" onclick="showSection('plan-day')">Plan Day</button>
                 <button class="nav-btn" onclick="showSection('log-time')">Log Time</button>
                 <button class="nav-btn" onclick="showSection('view-assignments')">View Assignments</button>
+                <button class="nav-btn" onclick="showSection('activity-log')">Activity Log</button>
                 <button class="nav-btn" onclick="showSection('backup-restore')">Save Data</button>
             </div>
         </div>
@@ -1069,6 +1080,16 @@
             <button type="button" class="submit-btn" id="remove-btn" style="display:none;" onclick="removeAssignment()">Remove Assignment</button>
         </div>
 
+        <!-- Activity Log Section -->
+        <div id="activity-log" class="section">
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Activity Log</h2>
+            </div>
+            <p style="font-size:13px;color:#888;margin-bottom:16px;">Your practice activity for the past 7 days. Each entry shows total time logged per assignment per day.</p>
+            <div id="activity-log-container"></div>
+        </div>
+
         <!-- Save Data Section -->
         <div id="backup-restore" class="section">
             <div class="section-header">
@@ -1122,7 +1143,8 @@
         const LS_KEY        = 'time_manager_data';
         const LS_WEEK_KEY   = 'time_manager_week';
         const LS_DAY_KEY    = 'time_manager_day';  // stores YYYY-MM-DD of last daily reset
-        const LS_STREAK_KEY = 'time_manager_streak'; // { count, lastDate } JSON
+        const LS_STREAK_KEY   = 'time_manager_streak';   // { count, lastDate } JSON
+        const LS_ACTIVITY_KEY = 'time_manager_activity'; // array of { date, assignmentIdx, task, teacher, rep, minutes, firstLoggedAt }
 
         class DataManager {
             constructor() {
@@ -1476,7 +1498,9 @@
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
 
-            if (sectionId === 'view-assignments') {
+            if (sectionId === 'activity-log') {
+                renderActivityLog();
+            } else if (sectionId === 'view-assignments') {
                 renderFilterBar();
                 loadAssignments();
             } else if (sectionId === 'log-time') {
@@ -1711,6 +1735,7 @@
                 } else {
                     await dataManager.updateTimeSpent(i, item.recommendedTime);
                 }
+                recordActivityEntry(i, item.recommendedTime);
             }
             if (planned.length > 0) recordStreakActivity();
         }
@@ -1773,7 +1798,10 @@
             document.getElementById('edit-repetition').value = a.repetitionType;
             document.getElementById('edit-time').value       = a.time;
             document.getElementById('edit-importance').value = a.importance;
-            document.getElementById('edit-time-spent').value = a.timeSpent;
+            const currentSpent = a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0)
+                               : a.repetitionType === 'daily'  ? (a.dailyTimeSpent  ?? 0)
+                               : a.timeSpent;
+            document.getElementById('edit-time-spent').value = currentSpent;
 
             if (a.type === 'definite') {
                 const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -1814,7 +1842,7 @@
             const imp      = parseInt(fd.get('importance'));
             const ts       = parseInt(fd.get('timeSpent')) || 0;
 
-            if (!teacher || !task || !type || !rep || !time || !imp) { showStatus('Please fill in all required fields', true); return; }
+            if (!task || !type || !rep || !time || !imp) { showStatus('Please fill in all required fields', true); return; }
             if (time <= 0 || imp < 1 || imp > 5) { showStatus('Please enter valid values for time and importance', true); return; }
 
             let dueDate;
@@ -1826,7 +1854,16 @@
                 dueDate = convertToDate("Jan", 1, 2025);
             }
 
-            const updated = new Assignment(teacher, task, type, dueDate, rep, time, imp, ts, editFormSelectedTagId);
+            const orig2        = await dataManager.getAssignment(idx);
+            const baseTS2      = orig2 ? orig2.timeSpent          : 0;
+            const baseWeeklyTS2 = orig2 ? (orig2.weeklyTimeSpent ?? 0) : 0;
+            const baseDailyTS2  = orig2 ? (orig2.dailyTimeSpent  ?? 0) : 0;
+
+            const finalTimeSpent2  = rep === 'once'   ? ts : baseTS2;
+            const finalWeeklyTS2   = rep === 'weekly' ? ts : baseWeeklyTS2;
+            const finalDailyTS2    = rep === 'daily'  ? ts : baseDailyTS2;
+
+            const updated = new Assignment(teacher, task, type, dueDate, rep, time, imp, finalTimeSpent2, editFormSelectedTagId, finalWeeklyTS2, finalDailyTS2);
             try {
                 await dataManager.updateAssignment(idx, updated);
                 showStatus('Assignment updated successfully!');
@@ -1891,6 +1928,7 @@
                 } else {
                     await dataManager.updateTimeSpent(idx, time);
                 }
+                recordActivityEntry(idx, time);
                 showStatus('Time logged successfully!');
                 recordStreakActivity();
                 document.getElementById('assignment-select').value = '';
@@ -1980,6 +2018,7 @@
                 localStorage.removeItem(LS_WEEK_KEY);
                 localStorage.removeItem(LS_DAY_KEY);
                 localStorage.removeItem(LS_STREAK_KEY);
+                localStorage.removeItem(LS_ACTIVITY_KEY);
                 addFormSelectedTagId  = null;
                 editFormSelectedTagId = null;
                 viewFilterTagId       = 'ALL';
@@ -2314,7 +2353,11 @@
             document.getElementById('pe-repetition').value = a.repetitionType;
             document.getElementById('pe-time').value       = a.time;
             document.getElementById('pe-importance').value = a.importance;
-            document.getElementById('pe-time-spent').value = a.timeSpent;
+            // Show the currently relevant time spent value for this repetition type
+            const peCurrentSpent = a.repetitionType === 'weekly' ? (a.weeklyTimeSpent ?? 0)
+                                 : a.repetitionType === 'daily'  ? (a.dailyTimeSpent  ?? 0)
+                                 : a.timeSpent;
+            document.getElementById('pe-time-spent').value = peCurrentSpent;
 
             if (a.type === 'definite') {
                 const mon = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -2365,9 +2408,18 @@
                 dueDate = convertToDate("Jan", 1, 2025);
             }
 
-            const orig    = await dataManager.getAssignment(idx);
-            const weeklyTS = orig ? (orig.weeklyTimeSpent ?? 0) : 0;
-            const updated  = new Assignment(teacher, task, type, dueDate, rep, time, imp, ts, peSelectedTagId, weeklyTS);
+            const orig     = await dataManager.getAssignment(idx);
+            const baseTS        = orig ? orig.timeSpent        : 0;
+            const baseWeeklyTS  = orig ? (orig.weeklyTimeSpent ?? 0) : 0;
+            const baseDailyTS   = orig ? (orig.dailyTimeSpent  ?? 0) : 0;
+
+            // Route the edited time-spent value to the correct field for this rep type;
+            // preserve the other two fields from the original so they aren't wiped.
+            const finalTimeSpent   = rep === 'once'   ? ts : baseTS;
+            const finalWeeklyTS    = rep === 'weekly' ? ts : baseWeeklyTS;
+            const finalDailyTS     = rep === 'daily'  ? ts : baseDailyTS;
+
+            const updated = new Assignment(teacher, task, type, dueDate, rep, time, imp, finalTimeSpent, peSelectedTagId, finalWeeklyTS, finalDailyTS);
             await dataManager.updateAssignment(idx, updated);
             showStatus('Assignment updated successfully!');
             closeAssignmentPopup();
@@ -2446,6 +2498,150 @@
 
             closeAssignmentPopup();
             showStatus('Assignment exported as CSV!');
+        }
+
+        // ─────────────────────────────────────────────
+        //  Activity log
+        // ─────────────────────────────────────────────
+
+        // Load the stored activity log (array of daily-per-assignment entries).
+        function loadActivityLog() {
+            try {
+                const raw = localStorage.getItem(LS_ACTIVITY_KEY);
+                return raw ? JSON.parse(raw) : [];
+            } catch { return []; }
+        }
+
+        // Record (or accumulate) time for an assignment on today's date.
+        // Keeps only the last 7 distinct days of data.
+        function recordActivityEntry(assignmentIdx, minutesAdded) {
+            const today = _todayKey ? _todayKey() : new Date().toISOString().slice(0, 10);
+            const a     = dataManager.assignments[assignmentIdx];
+            if (!a) return;
+
+            let log = loadActivityLog();
+
+            // Find an existing entry for this assignment today
+            const existing = log.find(e => e.date === today && e.assignmentIdx === assignmentIdx);
+            if (existing) {
+                existing.minutes += minutesAdded;
+            } else {
+                log.push({
+                    date:          today,
+                    assignmentIdx: assignmentIdx,
+                    task:          a.task,
+                    teacher:       a.teacher || '',
+                    rep:           a.repetitionType,
+                    tagId:         a.tagId || null,
+                    minutes:       minutesAdded,
+                    firstLoggedAt: Date.now()
+                });
+            }
+
+            // Keep only the 7 most recent distinct days
+            const distinctDays = [...new Set(log.map(e => e.date))].sort().reverse().slice(0, 7);
+            log = log.filter(e => distinctDays.includes(e.date));
+
+            localStorage.setItem(LS_ACTIVITY_KEY, JSON.stringify(log));
+        }
+
+        // ─────────────────────────────────────────────
+        //  Activity log (render)
+        // ─────────────────────────────────────────────
+        function renderActivityLog() {
+            const container = document.getElementById('activity-log-container');
+            const log       = loadActivityLog();
+
+            if (log.length === 0) {
+                container.innerHTML = '<p style="color:#888;font-style:italic;">No activity recorded yet. Generate a plan or log time to get started.</p>';
+                return;
+            }
+
+            // Group entries by date, preserving chronological order within each day
+            const byDay = {};
+            for (const entry of log) {
+                if (!byDay[entry.date]) byDay[entry.date] = [];
+                byDay[entry.date].push(entry);
+            }
+
+            // Sort days newest first
+            const days = Object.keys(byDay).sort().reverse();
+
+            container.innerHTML = '';
+
+            const today     = new Date().toISOString().slice(0, 10);
+            const yesterday = (() => { const d = new Date(); d.setDate(d.getDate()-1); return d.toISOString().slice(0,10); })();
+            const DOW_FULL  = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+            const MON_FULL  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+            for (const day of days) {
+                const entries = byDay[day].slice().sort((a, b) => a.firstLoggedAt - b.firstLoggedAt);
+                const dayTotal = entries.reduce((s, e) => s + e.minutes, 0);
+
+                // Date label
+                const d         = new Date(day + 'T12:00:00');
+                const dowLabel  = DOW_FULL[d.getDay()];
+                const dateLabel = day === today     ? `Today — ${dowLabel}, ${MON_FULL[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+                                : day === yesterday ? `Yesterday — ${dowLabel}, ${MON_FULL[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+                                : `${dowLabel}, ${MON_FULL[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+
+                // Day block
+                const dayBlock = document.createElement('div');
+                dayBlock.style.cssText = 'margin-bottom:22px;';
+
+                const dayHeader = document.createElement('div');
+                dayHeader.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid #e1e5e9;';
+                dayHeader.innerHTML = `
+                    <span style="font-size:14px;font-weight:700;color:#333;">${escHtml(dateLabel)}</span>
+                    <span style="font-size:12px;font-weight:600;color:#888;">${dayTotal} min total</span>`;
+                dayBlock.appendChild(dayHeader);
+
+                for (const entry of entries) {
+                    const tag  = entry.tagId ? dataManager.getTag(entry.tagId) : null;
+                    const row  = document.createElement('div');
+                    row.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:white;border-radius:8px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,0.07);';
+
+                    const left = document.createElement('div');
+                    left.style.cssText = 'flex:1;min-width:0;';
+
+                    const taskEl = document.createElement('div');
+                    taskEl.style.cssText = 'font-size:14px;font-weight:600;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+                    taskEl.textContent   = entry.task;
+
+                    const metaEl = document.createElement('div');
+                    metaEl.style.cssText = 'font-size:12px;color:#888;margin-top:2px;';
+                    const repLabel = entry.rep === 'daily' ? 'Daily' : entry.rep === 'weekly' ? 'Weekly' : 'Once';
+                    metaEl.textContent   = [entry.teacher || null, repLabel].filter(Boolean).join(' · ');
+
+                    left.appendChild(taskEl);
+                    left.appendChild(metaEl);
+
+                    const right = document.createElement('div');
+                    right.style.cssText = 'display:flex;align-items:center;gap:8px;flex-shrink:0;margin-left:10px;';
+
+                    if (entry.tagId) {
+                        const tagChip = document.createElement('span');
+                        const tagObj  = dataManager.getTag(entry.tagId);
+                        if (tagObj) {
+                            tagChip.className = 'tag-display-chip';
+                            tagChip.style.background = tagObj.color;
+                            tagChip.textContent = tagObj.name;
+                            right.appendChild(tagChip);
+                        }
+                    }
+
+                    const minEl = document.createElement('span');
+                    minEl.style.cssText = 'font-size:15px;font-weight:700;color:#667eea;white-space:nowrap;';
+                    minEl.textContent   = entry.minutes + ' min';
+                    right.appendChild(minEl);
+
+                    row.appendChild(left);
+                    row.appendChild(right);
+                    dayBlock.appendChild(row);
+                }
+
+                container.appendChild(dayBlock);
+            }
         }
 
         // ─────────────────────────────────────────────
