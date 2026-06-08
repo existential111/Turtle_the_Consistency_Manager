@@ -46,4 +46,6 @@ Added new date system indicator
 Combined viewing, editing, and removing assignments into one
 Added logging time for daily assignments
 After careful consideration, added auto-logging time after planning day
+Added daily streak system (current design placeholder, credits to Claude)
+Small bug fixes
 
