@@ -44,3 +44,6 @@ Added new date system indicator
 
 6/7/2026:
 Combined viewing, editing, and removing assignments into one
+Added logging time for daily assignments
+After careful consideration, added auto-logging time after planning day
+
