@@ -51,3 +51,8 @@ Small bug fixes
 Added Activity Log for past 7 days' practice
 Added new User Guide
 
+6/10/2026:
+Added Quick-Start!
+Changed banner
+Small bug fixes
+
