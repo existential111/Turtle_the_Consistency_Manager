@@ -9,7 +9,7 @@
 
   		gtag('config', 'G-W0HRHTEML2');
 	</script>
-
+	
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Turtle, the Consistency Manager</title>
@@ -81,10 +81,31 @@
             box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
         }
         .nav-btn:active { transform: translateY(0); }
-        .section {
-            display: none;
-            animation: fadeIn 0.3s ease-in;
+
+        /* ── QUICKSTART BUTTON ── */
+        .quickstart-btn {
+            display: block;
+            width: 100%;
+            padding: 20px 25px;
+            border: none;
+            border-radius: 14px;
+            font-size: 19px;
+            font-weight: 800;
+            letter-spacing: 0.02em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: linear-gradient(45deg, #f9ca24, #f0932b);
+            color: #1a1a2e;
+            box-shadow: 0 4px 18px rgba(240, 147, 43, 0.4);
+            margin-bottom: 18px;
         }
+        .quickstart-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(240, 147, 43, 0.5);
+        }
+        .quickstart-btn:active { transform: translateY(0); }
+
+        .section { display: none; }
         .section.active { display: block; }
         @keyframes fadeIn {
             from { opacity: 0; }
@@ -417,6 +438,34 @@
             opacity: 0.55;
         }
         .filter-chip.tag-filter.active { opacity: 1; border-color: rgba(0,0,0,0.3); }
+
+        /* ── QUICKSTART CATEGORY CHIPS ── */
+        .qs-category-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+        .qs-category-chip {
+            display: inline-flex;
+            align-items: center;
+            padding: 10px 20px;
+            border-radius: 24px;
+            font-size: 15px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        .qs-category-chip.selected {
+            border-color: rgba(0,0,0,0.25);
+            box-shadow: 0 0 0 2px rgba(255,255,255,0.8) inset;
+            transform: translateY(-1px);
+        }
+        .qs-category-chip[data-cat="flexibility"] { background: #e74c3c; }
+        .qs-category-chip[data-cat="core"]        { background: #17a2b8; }
 
         @media (max-width: 768px) {
             .container { padding: 20px; max-width: 95%; }
@@ -777,6 +826,7 @@
 
         <!-- Main Menu -->
         <div id="main-menu" class="section active">
+            <button class="quickstart-btn" onclick="showSection('quickstart')">⚡ Quick-Start Practice</button>
             <div class="nav-buttons">
                 <button class="nav-btn" onclick="showSection('add-assignment')">Add New Assignment</button>
                 <button class="nav-btn" onclick="showSection('plan-day')">Plan Day</button>
@@ -785,6 +835,31 @@
                 <button class="nav-btn" onclick="showSection('activity-log')">Activity Log</button>
                 <button class="nav-btn" onclick="showSection('backup-restore')">Save Data</button>
             </div>
+        </div>
+
+        <!-- Quick-Start Section -->
+        <div id="quickstart" class="section">
+            <div class="section-header">
+                <button type="button" class="back-btn" onclick="showSection('main-menu')">Back</button>
+                <h2>Quick-Start Practice</h2>
+            </div>
+
+            <p style="font-size:13px;color:#888;margin-bottom:14px;">Choose a category, then enter how much time you have. Turtle will generate a ready-to-go practice plan — no setup required.</p>
+
+            <div class="qs-category-row" id="qs-category-row">
+                <span class="qs-category-chip" data-cat="flexibility" onclick="selectQuickstartCategory('flexibility')">🤸 Flexibility</span>
+                <span class="qs-category-chip" data-cat="core" onclick="selectQuickstartCategory('core')">🔥 Core</span>
+            </div>
+
+            <div id="qs-time-section" style="display:none;">
+                <div class="form-group">
+                    <label for="qs-available-time">Available Time (minutes):</label>
+                    <input type="number" id="qs-available-time" min="1" required>
+                </div>
+                <button type="button" class="submit-btn" onclick="generateQuickstartPlan()">Generate Plan</button>
+            </div>
+
+            <div id="qs-plan-results" class="assignments-list" style="display:none;margin-top:20px;"></div>
         </div>
 
         <!-- Add Assignment Section -->
@@ -1116,7 +1191,6 @@
             </div>
         </div>
     </div>
-
     <script>
         // ─────────────────────────────────────────────
         //  Assignment class
@@ -1512,6 +1586,8 @@
             } else if (sectionId === 'add-assignment') {
                 addFormSelectedTagId = null;
                 renderTagChips('add');
+            } else if (sectionId === 'quickstart') {
+                resetQuickstartUI();
             }
         }
 
@@ -1764,9 +1840,12 @@
             const timeSpentLine = isDaily  ? `<strong>Time Spent Today:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>` :
                                   isWeekly ? `<strong>Time Spent This Week:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>` :
                                              `<strong>Time Spent:</strong> ${realTimeSpent} / ${assignment.time} minutes<br>`;
+            const titleText = (index === null || index === undefined)
+                ? escHtml(assignment.task)
+                : `Assignment ${index}: ${escHtml(assignment.task)}`;
             card.innerHTML = `
                 <div class="assignment-header">
-                    <div class="assignment-title">Assignment ${index}: ${escHtml(assignment.task)}</div>
+                    <div class="assignment-title">${titleText}</div>
                     <div class="priority-badge priority-${assignment.importance}">${dataManager.priorityChart[assignment.importance]}</div>
                 </div>
                 <div class="assignment-details">
@@ -2545,6 +2624,36 @@
             localStorage.setItem(LS_ACTIVITY_KEY, JSON.stringify(log));
         }
 
+        // Record a quickstart (synthetic) activity entry — uses a negative
+        // sentinel index space so it never collides with real assignment indices.
+        function recordQuickstartActivityEntry(label, teacher, tagId, minutesAdded) {
+            const today = _todayKey();
+            let log = loadActivityLog();
+
+            const existing = log.find(e => e.date === today && e.qsLabel === label && e.qsTagId === tagId);
+            if (existing) {
+                existing.minutes += minutesAdded;
+            } else {
+                log.push({
+                    date:          today,
+                    assignmentIdx: -1,
+                    qsLabel:       label,
+                    task:          label,
+                    teacher:       teacher || '',
+                    rep:           'daily',
+                    tagId:         tagId || null,
+                    qsTagId:       tagId || null,
+                    minutes:       minutesAdded,
+                    firstLoggedAt: Date.now()
+                });
+            }
+
+            const distinctDays = [...new Set(log.map(e => e.date))].sort().reverse().slice(0, 7);
+            log = log.filter(e => distinctDays.includes(e.date));
+
+            localStorage.setItem(LS_ACTIVITY_KEY, JSON.stringify(log));
+        }
+
         // ─────────────────────────────────────────────
         //  Activity log (render)
         // ─────────────────────────────────────────────
@@ -2754,6 +2863,264 @@
                 msg.textContent = text;
                 msg.className   = 'streak-message active';
             }
+        }
+
+        // ─────────────────────────────────────────────
+        //  Quick-Start Practice
+        // ─────────────────────────────────────────────
+        // Quickstart is entirely separate from the user's assignment list.
+        // It builds "fake" Assignment-like objects purely for display
+        // (so cards look identical to real assignments), and logs time
+        // to the shared activity log / streak — but never touches
+        // dataManager.assignments or localStorage assignment data.
+
+        let qsSelectedCategory = null;
+
+        const QS_TAG_INFO = {
+            flexibility: { name: 'Flexibility', color: '#e74c3c' },
+            core:        { name: 'Core',        color: '#17a2b8' }
+        };
+
+        // Ensure a "virtual" tag exists for a quickstart category and return its id.
+        // We create a real tag entry (so tagDisplayHtml/getTag work normally and
+        // the chip renders with the right color), but quickstart assignments
+        // themselves are never persisted to dataManager.assignments.
+        function getOrCreateQuickstartTagId(category) {
+            const info = QS_TAG_INFO[category];
+            const existing = dataManager.getAllTags().find(t => t.name.toLowerCase() === info.name.toLowerCase());
+            if (existing) return existing.id;
+            return dataManager.addTag(info.name, info.color);
+        }
+
+        function resetQuickstartUI() {
+            qsSelectedCategory = null;
+            document.querySelectorAll('.qs-category-chip').forEach(c => c.classList.remove('selected'));
+            document.getElementById('qs-time-section').style.display = 'none';
+            document.getElementById('qs-available-time').value = '';
+            const results = document.getElementById('qs-plan-results');
+            results.style.display = 'none';
+            results.innerHTML = '';
+        }
+
+        function selectQuickstartCategory(category) {
+            qsSelectedCategory = category;
+            document.querySelectorAll('.qs-category-chip').forEach(c => {
+                c.classList.toggle('selected', c.dataset.cat === category);
+            });
+            document.getElementById('qs-time-section').style.display = 'block';
+            const results = document.getElementById('qs-plan-results');
+            results.style.display = 'none';
+            results.innerHTML = '';
+        }
+
+        // Build a fake Assignment-like object for display/logging purposes.
+        // teacher = "Turtle", indefinite, no due date, daily, importance varies.
+        function makeQuickstartAssignment(task, importance, tagId, minutes) {
+            const dueDate = convertToDate("Jan", 1, 2025); // unused (indefinite), matches existing convention
+            return new Assignment("Turtle", task, "indefinite", dueDate, "daily", minutes, importance, 0, tagId, 0, 0);
+        }
+
+        // ── Flexibility plan generator ──────────────────────────────
+        // Cycle: Overstretch -> Swing leg + leg hold -> Middle split -> Arches
+        //        -> Backbend/back flex -> Break -> (repeat from Overstretch)
+        // Warmup is a one-time prefix step (only in the first cycle).
+        // Arches and Backbend/back flex are only included once every two
+        // cycles each (i.e. alternate in/out), per the "do this before X if
+        // the last cycle with X didn't have it too" rule.
+        function generateFlexibilityPlan(totalMinutes) {
+            const plan = []; // { label, minutes, importance }
+            let remaining = totalMinutes;
+
+            // ── Warmup (one-time, up to 2 min) ──
+            // Determine, using the TOTAL time input, whether overstretch and
+            // swing-leg+hold can each be done in full (5 min) at least once.
+            const canFitOverstretchFull = totalMinutes >= 5;
+            const canFitSwingLegFull    = totalMinutes >= 10; // needs room after overstretch too
+
+            let warmupMinutes = 2;
+            let warmupImportance = 4;
+            if (!canFitOverstretchFull) {
+                warmupMinutes = 1;
+            } else if (!canFitSwingLegFull) {
+                // overstretch fits, but swing leg + hold (the full 5 min) won't
+                warmupMinutes = 1;
+            }
+
+            if (remaining > 0) {
+                const m = Math.min(warmupMinutes, remaining);
+                plan.push({ label: 'Warmup', minutes: m, importance: warmupImportance });
+                remaining -= m;
+            }
+
+            // Track whether the most recent cycle included Arches / Backbend,
+            // so we can decide whether to include them "before middle split"
+            // in the next cycle.
+            let lastCycleHadArches   = false;
+            let lastCycleHadBackbend = false;
+
+            while (remaining > 0) {
+                // 1. Overstretch (up to 5 min, importance 5)
+                if (remaining > 0) {
+                    const m = Math.min(5, remaining);
+                    plan.push({ label: 'Overstretch (both sides)', minutes: m, importance: 5 });
+                    remaining -= m;
+                }
+                if (remaining <= 0) break;
+
+                // 2. Swing leg + leg hold (up to 5 min, importance 5)
+                if (remaining > 0) {
+                    const m = Math.min(5, remaining);
+                    plan.push({ label: 'Swing leg + leg hold (both sides)', minutes: m, importance: 5 });
+                    remaining -= m;
+                }
+                if (remaining <= 0) break;
+
+                // Decide if Backbend / back flex should be inserted before
+                // middle split + arches this cycle (it wasn't included last cycle).
+                const includeBackbendThisCycle = !lastCycleHadBackbend;
+                let backbendIncluded = false;
+                if (includeBackbendThisCycle && remaining > 0) {
+                    const m = Math.min(2, remaining);
+                    plan.push({ label: 'Backbend / back flex', minutes: m, importance: 3 });
+                    remaining -= m;
+                    backbendIncluded = true;
+                }
+                if (remaining <= 0) { lastCycleHadBackbend = backbendIncluded; lastCycleHadArches = false; break; }
+
+                // Decide if Arches should be inserted before middle split
+                // this cycle (it wasn't included last cycle).
+                const includeArchesThisCycle = !lastCycleHadArches;
+                let archesIncluded = false;
+                if (includeArchesThisCycle && remaining > 0) {
+                    const m = Math.min(15, remaining);
+                    plan.push({ label: 'Arches', minutes: m, importance: 4 });
+                    remaining -= m;
+                    archesIncluded = true;
+                }
+                if (remaining <= 0) { lastCycleHadBackbend = backbendIncluded; lastCycleHadArches = archesIncluded; break; }
+
+                // 3. Middle split (up to 5 min, importance 4)
+                if (remaining > 0) {
+                    const m = Math.min(5, remaining);
+                    plan.push({ label: 'Middle split', minutes: m, importance: 4 });
+                    remaining -= m;
+                }
+
+                lastCycleHadBackbend = backbendIncluded;
+                lastCycleHadArches   = archesIncluded;
+
+                if (remaining <= 0) break;
+
+                // If Arches/Backbend weren't included this cycle (because they
+                // were included last cycle), they'll be reconsidered next cycle.
+                // (Handled at top of loop via lastCycleHad* flags.)
+
+                // 4. Break / rest (1 min, importance 5)
+                if (remaining > 0) {
+                    const m = Math.min(1, remaining);
+                    plan.push({ label: 'Break / rest', minutes: m, importance: 5 });
+                    remaining -= m;
+                }
+            }
+
+            return plan;
+        }
+
+        // ── Core plan generator ─────────────────────────────────────
+        // Cycle: Crunches -> Plank -> Russian twists -> Break/stretch -> repeat
+        function generateCorePlan(totalMinutes) {
+            const plan = [];
+            let remaining = totalMinutes;
+
+            while (remaining > 0) {
+                // 1. Crunches (up to 5 min, importance 4)
+                if (remaining > 0) {
+                    const m = Math.min(5, remaining);
+                    plan.push({ label: 'Crunches (30-40/min)', minutes: m, importance: 4 });
+                    remaining -= m;
+                }
+                if (remaining <= 0) break;
+
+                // 2. Plank (up to 2 min, importance 4) — skip if can't do all 2 min
+                if (remaining > 0) {
+                    if (remaining >= 2) {
+                        plan.push({ label: 'Plank', minutes: 2, importance: 4 });
+                        remaining -= 2;
+                    }
+                    // else: skip plank entirely this cycle
+                }
+                if (remaining <= 0) break;
+
+                // 3. Russian twists (up to 5 min, importance 3)
+                if (remaining > 0) {
+                    const m = Math.min(5, remaining);
+                    plan.push({ label: 'Russian twists (30-40/min)', minutes: m, importance: 3 });
+                    remaining -= m;
+                }
+                if (remaining <= 0) break;
+
+                // 4. Break / stretch (3 min)
+                if (remaining > 0) {
+                    const m = Math.min(3, remaining);
+                    plan.push({ label: 'Break / stretch', minutes: m, importance: 3 });
+                    remaining -= m;
+                }
+            }
+
+            return plan;
+        }
+
+        // ── Generate + render + log ──────────────────────────────────
+        async function generateQuickstartPlan() {
+            if (!qsSelectedCategory) { showStatus('Please select a category', true); return; }
+
+            const totalMinutes = parseInt(document.getElementById('qs-available-time').value);
+            if (!totalMinutes || totalMinutes <= 0) { showStatus('Please enter a valid amount of time', true); return; }
+
+            let rawPlan;
+            if (qsSelectedCategory === 'flexibility') {
+                rawPlan = generateFlexibilityPlan(totalMinutes);
+            } else if (qsSelectedCategory === 'core') {
+                rawPlan = generateCorePlan(totalMinutes);
+            } else {
+                showStatus('That category is not available yet', true);
+                return;
+            }
+
+            const tagId = getOrCreateQuickstartTagId(qsSelectedCategory);
+
+            const resultsDiv = document.getElementById('qs-plan-results');
+            resultsDiv.innerHTML = '';
+
+            if (rawPlan.length === 0) {
+                resultsDiv.innerHTML = '<p>Not enough time to generate a plan!</p>';
+                resultsDiv.style.display = 'block';
+                return;
+            }
+
+            const title = document.createElement('h3');
+            title.textContent = `Your ${QS_TAG_INFO[qsSelectedCategory].name} Practice Plan:`;
+            title.style.marginBottom = '20px';
+            resultsDiv.appendChild(title);
+
+            for (const step of rawPlan) {
+                const fakeAssignment = makeQuickstartAssignment(step.label, step.importance, tagId, step.minutes);
+                resultsDiv.appendChild(createPlanCard(fakeAssignment, null, step.minutes, 0));
+                // Log this step's time to the shared activity log
+                if (!/^Break/.test(step.label)) {
+                    recordQuickstartActivityEntry(step.label, 'Turtle', tagId, step.minutes);
+                }
+            }
+
+            const note = document.createElement('p');
+            note.textContent = 'This Quick-Start plan has been logged to your Activity Log. It does not create or modify any assignments.';
+            note.style.cssText = 'margin-top:20px;font-style:italic;color:#666;';
+            resultsDiv.appendChild(note);
+
+            resultsDiv.style.display = 'block';
+
+            // Quickstart practice counts toward the streak
+            recordStreakActivity();
         }
 
         // ─────────────────────────────────────────────
