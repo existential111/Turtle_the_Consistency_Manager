@@ -56,3 +56,6 @@ Added Quick-Start!
 Changed banner
 Small bug fixes
 
+6/16/2026:
+Added Strength training to Quick-Start
+
