@@ -466,6 +466,7 @@
         }
         .qs-category-chip[data-cat="flexibility"] { background: #e74c3c; }
         .qs-category-chip[data-cat="core"]        { background: #17a2b8; }
+        .qs-category-chip[data-cat="strength"]    { background: #8e44ad; }
 
         @media (max-width: 768px) {
             .container { padding: 20px; max-width: 95%; }
@@ -704,7 +705,7 @@
         <h1>Turtle</h1>
 
         <div style="background:#e65c00;color:white;border-radius:10px;padding:14px 18px;margin-bottom:18px;font-size:14px;line-height:1.5;">
-            <strong>⚠️ Quick-Start:</strong> The Quick-Start Practice feature is currently WIP, and many unexpected bugs may occur. Please use with caution, and you may raise an Issue in the official GitHub repository.
+            <strong>⚠️ Date System Update:</strong> A new date system was recently introduced. The <strong>year</strong> on existing assignment due dates may be inaccurate. Please go to <strong>Edit Assignment</strong> and check each assignment's due date, correcting the year where needed.
         </div>
 
         <div id="status-message" class="status-message"></div>
@@ -849,6 +850,7 @@
             <div class="qs-category-row" id="qs-category-row">
                 <span class="qs-category-chip" data-cat="flexibility" onclick="selectQuickstartCategory('flexibility')">🤸 Flexibility</span>
                 <span class="qs-category-chip" data-cat="core" onclick="selectQuickstartCategory('core')">🔥 Core</span>
+                <span class="qs-category-chip" data-cat="strength" onclick="selectQuickstartCategory('strength')">💪 Strength</span>
             </div>
 
             <div id="qs-time-section" style="display:none;">
@@ -2878,7 +2880,8 @@
 
         const QS_TAG_INFO = {
             flexibility: { name: 'Flexibility', color: '#e74c3c' },
-            core:        { name: 'Core',        color: '#17a2b8' }
+            core:        { name: 'Core',        color: '#17a2b8' },
+            strength:    { name: 'Strength',    color: '#8e44ad' }
         };
 
         // Ensure a "virtual" tag exists for a quickstart category and return its id.
@@ -2952,11 +2955,15 @@
                 remaining -= m;
             }
 
-            // Track whether the most recent cycle included Arches / Backbend,
-            // so we can decide whether to include them "before middle split"
-            // in the next cycle.
-            let lastCycleHadArches   = false;
-            let lastCycleHadBackbend = false;
+            // State for cycle-ordering rules:
+            // - prevArchesBeforeSplit: did the previous cycle place Arches
+            //   before Middle split? (drives "Arches before split" this cycle)
+            // - cyclesSinceBackbend: how many consecutive middle-split/arches
+            //   cycles have passed without Backbend being included.
+            //   Backbend gets pulled to the front once this reaches 2.
+            // Both default to "not satisfied" for cycle 1 (normal order).
+            let prevArchesBeforeSplit = false;
+            let cyclesSinceBackbend   = 0;
 
             while (remaining > 0) {
                 // 1. Overstretch (up to 5 min, importance 5)
@@ -2975,45 +2982,52 @@
                 }
                 if (remaining <= 0) break;
 
-                // Decide if Backbend / back flex should be inserted before
-                // middle split + arches this cycle (it wasn't included last cycle).
-                const includeBackbendThisCycle = !lastCycleHadBackbend;
-                let backbendIncluded = false;
-                if (includeBackbendThisCycle && remaining > 0) {
-                    const m = Math.min(2, remaining);
-                    plan.push({ label: 'Backbend / back flex', minutes: m, importance: 3 });
-                    remaining -= m;
-                    backbendIncluded = true;
-                }
-                if (remaining <= 0) { lastCycleHadBackbend = backbendIncluded; lastCycleHadArches = false; break; }
+                // Decide ordering for this cycle's Middle split / Arches / Backbend block.
+                const archesFirst   = prevArchesBeforeSplit;       // Arches before Middle split?
+                const backbendFirst = cyclesSinceBackbend >= 2;    // Backbend pulled to front?
 
-                // Decide if Arches should be inserted before middle split
-                // this cycle (it wasn't included last cycle).
-                const includeArchesThisCycle = !lastCycleHadArches;
-                let archesIncluded = false;
-                if (includeArchesThisCycle && remaining > 0) {
-                    const m = Math.min(15, remaining);
-                    plan.push({ label: 'Arches', minutes: m, importance: 4 });
-                    remaining -= m;
-                    archesIncluded = true;
-                }
-                if (remaining <= 0) { lastCycleHadBackbend = backbendIncluded; lastCycleHadArches = archesIncluded; break; }
+                // Build the ordered list of {key, label, minutes, importance} for this block.
+                const middleSplitItem = { key: 'split',    label: 'Middle split',         minutes: 5,  importance: 4 };
+                const archesItem      = { key: 'arches',   label: 'Arches',               minutes: 15, importance: 4 };
+                const backbendItem    = { key: 'backbend', label: 'Backbend / back flex',  minutes: 2,  importance: 3 };
 
-                // 3. Middle split (up to 5 min, importance 4)
-                if (remaining > 0) {
-                    const m = Math.min(5, remaining);
-                    plan.push({ label: 'Middle split', minutes: m, importance: 4 });
-                    remaining -= m;
+                let block;
+                if (backbendFirst) {
+                    // Backbend takes priority over the (tied) split/arches pair.
+                    block = archesFirst
+                        ? [backbendItem, archesItem, middleSplitItem]
+                        : [backbendItem, middleSplitItem, archesItem];
+                } else {
+                    block = archesFirst
+                        ? [archesItem, middleSplitItem, backbendItem]
+                        : [middleSplitItem, archesItem, backbendItem];
                 }
 
-                lastCycleHadBackbend = backbendIncluded;
-                lastCycleHadArches   = archesIncluded;
+                let backbendIncludedThisCycle = false;
+                let archesBeforeSplitThisCycle = false;
+                let splitPlacedYet  = false;
+
+                for (const item of block) {
+                    if (remaining <= 0) break;
+                    const m = Math.min(item.minutes, remaining);
+                    plan.push({ label: item.label, minutes: m, importance: item.importance });
+                    remaining -= m;
+
+                    if (item.key === 'split')    { splitPlacedYet = true; }
+                    if (item.key === 'backbend') { backbendIncludedThisCycle = true; }
+
+                    if (item.key === 'arches' && !splitPlacedYet) archesBeforeSplitThisCycle = true;
+                }
+
+                // Update state for next cycle.
+                prevArchesBeforeSplit = archesBeforeSplitThisCycle;
+                if (backbendIncludedThisCycle) {
+                    cyclesSinceBackbend = 0;
+                } else {
+                    cyclesSinceBackbend += 1;
+                }
 
                 if (remaining <= 0) break;
-
-                // If Arches/Backbend weren't included this cycle (because they
-                // were included last cycle), they'll be reconsidered next cycle.
-                // (Handled at top of loop via lastCycleHad* flags.)
 
                 // 4. Break / rest (1 min, importance 5)
                 if (remaining > 0) {
@@ -3070,7 +3084,88 @@
             return plan;
         }
 
-        // ── Generate + render + log ──────────────────────────────────
+        // ── Strength plan generator ─────────────────────────────────
+        // Cycle: Lift leg from passé + développé en croix (both sides, skip
+        //        if can't fully complete) -> [Back practice / Turnout practice
+        //        / Ankle rises block, order varies] -> Break -> repeat
+        function generateStrengthPlan(totalMinutes) {
+            const plan = [];
+            let remaining = totalMinutes;
+
+            // State for cycle-ordering rules (mirrors flexibility logic):
+            // - prevTurnoutBeforeBack: did the previous cycle place Turnout
+            //   practice before Back practice? Drives "Turnout before Back"
+            //   this cycle if last cycle had Back but not Turnout.
+            // - cyclesSinceAnkle: how many consecutive Back/Turnout cycles
+            //   have passed without Ankle rises being included. Ankle gets
+            //   pulled to the front once this reaches 2.
+            // Both default to "not satisfied" for cycle 1 (normal order).
+            let lastCycleHadBackNotTurnout = false;
+            let cyclesSinceAnkle           = 0;
+
+            while (remaining > 0) {
+                // 1. Lift leg from passé + développé en croix (both sides, 2 min)
+                //    Skip entirely if unable to fully complete.
+                if (remaining >= 2) {
+                    plan.push({ label: 'Lift leg from passé + développé en croix (both sides)', minutes: 2, importance: 4 });
+                    remaining -= 2;
+                }
+                if (remaining <= 0) break;
+
+                // Decide ordering for this cycle's Back / Turnout / Ankle block.
+                const turnoutFirst = lastCycleHadBackNotTurnout; // Turnout before Back?
+                const ankleFirst   = cyclesSinceAnkle >= 2;      // Ankle pulled to front?
+
+                const backItem    = { key: 'back',    label: 'Swimmers / superman / back practice', minutes: 5, importance: 4 };
+                const turnoutItem = { key: 'turnout', label: 'Clamshells / turnout practice',        minutes: 5, importance: 4 };
+                const ankleItem   = { key: 'ankle',   label: 'Ankle rises',                          minutes: 2, importance: 3 };
+
+                let block;
+                if (ankleFirst) {
+                    block = turnoutFirst
+                        ? [ankleItem, turnoutItem, backItem]
+                        : [ankleItem, backItem, turnoutItem];
+                } else {
+                    block = turnoutFirst
+                        ? [turnoutItem, backItem, ankleItem]
+                        : [backItem, turnoutItem, ankleItem];
+                }
+
+                let backIncludedThisCycle    = false;
+                let turnoutIncludedThisCycle = false;
+                let ankleIncludedThisCycle   = false;
+
+                for (const item of block) {
+                    if (remaining <= 0) break;
+                    const m = Math.min(item.minutes, remaining);
+                    plan.push({ label: item.label, minutes: m, importance: item.importance });
+                    remaining -= m;
+
+                    if (item.key === 'back')    backIncludedThisCycle    = true;
+                    if (item.key === 'turnout') turnoutIncludedThisCycle = true;
+                    if (item.key === 'ankle')   ankleIncludedThisCycle   = true;
+                }
+
+                // Update state for next cycle.
+                lastCycleHadBackNotTurnout = backIncludedThisCycle && !turnoutIncludedThisCycle;
+                if (ankleIncludedThisCycle) {
+                    cyclesSinceAnkle = 0;
+                } else if (backIncludedThisCycle || turnoutIncludedThisCycle) {
+                    cyclesSinceAnkle += 1;
+                }
+
+                if (remaining <= 0) break;
+
+                // Break (1 min)
+                if (remaining > 0) {
+                    const m = Math.min(1, remaining);
+                    plan.push({ label: 'Break / rest', minutes: m, importance: 5 });
+                    remaining -= m;
+                }
+            }
+
+            return plan;
+        }
         async function generateQuickstartPlan() {
             if (!qsSelectedCategory) { showStatus('Please select a category', true); return; }
 
@@ -3082,6 +3177,8 @@
                 rawPlan = generateFlexibilityPlan(totalMinutes);
             } else if (qsSelectedCategory === 'core') {
                 rawPlan = generateCorePlan(totalMinutes);
+            } else if (qsSelectedCategory === 'strength') {
+                rawPlan = generateStrengthPlan(totalMinutes);
             } else {
                 showStatus('That category is not available yet', true);
                 return;
