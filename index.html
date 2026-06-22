@@ -3104,11 +3104,11 @@
             let cyclesSinceAnkle           = 0;
 
             while (remaining > 0) {
-                // 1. Lift leg from passé + développé en croix (both sides, 2 min)
+                // 1. Lift leg from passé + développé en croix (both sides, 5 min)
                 //    Skip entirely if unable to fully complete.
-                if (remaining >= 2) {
-                    plan.push({ label: 'Lift leg from passé + développé en croix (both sides)', minutes: 2, importance: 4 });
-                    remaining -= 2;
+                if (remaining >= 5) {
+                    plan.push({ label: 'Lift leg from passé + développé en croix (both sides)', minutes: 5, importance: 4 });
+                    remaining -= 5;
                 }
                 if (remaining <= 0) break;
 
@@ -3116,8 +3116,8 @@
                 const turnoutFirst = lastCycleHadBackNotTurnout; // Turnout before Back?
                 const ankleFirst   = cyclesSinceAnkle >= 2;      // Ankle pulled to front?
 
-                const backItem    = { key: 'back',    label: 'Swimmers / superman / back practice', minutes: 5, importance: 4 };
-                const turnoutItem = { key: 'turnout', label: 'Clamshells / turnout practice',        minutes: 5, importance: 4 };
+                const backItem    = { key: 'back',    label: 'Swimmers / superman / back practice', minutes: 3, importance: 4 };
+                const turnoutItem = { key: 'turnout', label: 'Clamshells / turnout practice',        minutes: 3, importance: 4 };
                 const ankleItem   = { key: 'ankle',   label: 'Ankle rises',                          minutes: 2, importance: 3 };
 
                 let block;
@@ -3156,9 +3156,9 @@
 
                 if (remaining <= 0) break;
 
-                // Break (1 min)
+                // Break (2 min)
                 if (remaining > 0) {
-                    const m = Math.min(1, remaining);
+                    const m = Math.min(2, remaining);
                     plan.push({ label: 'Break / rest', minutes: m, importance: 5 });
                     remaining -= m;
                 }
