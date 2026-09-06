@@ -21,7 +21,6 @@
         }
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-	<!-- background: url('https://iopwiki.com/images/thumb/7/7a/202408_HK-416_c_crop.png/300px-202408_HK-416_c_crop.png') center/cover no-repeat fixed; -->
             background-color: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
@@ -206,6 +205,9 @@
             font-size: 18px;
             font-weight: 600;
             color: #333;
+            flex: 1 1 auto;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
         .priority-badge {
             padding: 4px 12px;
@@ -213,6 +215,8 @@
             font-size: 12px;
             font-weight: 600;
             color: white;
+            flex: 0 0 auto;
+            white-space: nowrap;
         }
         .priority-1 { background: #28a745; }
         .priority-2 { background: #17a2b8; }
@@ -220,11 +224,17 @@
         .priority-4 { background: #fd7e14; }
         .priority-5 { background: #dc3545; }
         .status-message {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2000;
+            width: min(520px, calc(100% - 32px));
             padding: 15px;
             border-radius: 8px;
-            margin-bottom: 20px;
             font-weight: 600;
             text-align: center;
+            box-shadow: 0 6px 22px rgba(0,0,0,0.2);
             display: none;
         }
         .status-success {
@@ -474,6 +484,7 @@
             .form-row { grid-template-columns: 1fr; }
             .date-input { grid-template-columns: 1fr; }
             .assignment-header { flex-direction: column; align-items: stretch; gap: 10px; }
+            .priority-badge { align-self: flex-start; }
         }
 
         /* ── ASSIGNMENT POPUP ── */
@@ -547,6 +558,32 @@
             transition: background 0.2s ease;
         }
         .popup-cancel-btn:hover { background: #dee2e6; }
+
+        /* ── PRACTICE TIMER ── */
+        .timer-readout {
+            margin: 18px 0;
+            padding: 22px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            text-align: center;
+            font-size: 42px;
+            font-weight: 800;
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 1px;
+        }
+        .timer-status {
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            font-weight: 600;
+            min-height: 20px;
+        }
+        .plan-timer-btn {
+            width: 100%;
+            margin-top: 12px;
+            background: #28a745;
+        }
 
         /* ── SECTION HEADER (back btn + title row) ── */
         .section-header {
@@ -687,6 +724,114 @@
             font-style: italic;
         }
         .streak-message.active { color: rgba(249,202,36,0.8); }
+        .guide-link-wrap {
+            margin-top: 72px;
+            text-align: center;
+            display: none;
+        }
+        #main-menu.active ~ .guide-link-wrap { display: block; }
+        .guide-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            text-decoration: none;
+            color: #fff;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            border-radius: 999px;
+            padding: 12px 22px;
+            font-size: 14px;
+            font-weight: 700;
+            box-shadow: 0 6px 18px rgba(102, 126, 234, 0.25);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .guide-link:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 22px rgba(102, 126, 234, 0.35);
+        }
+
+        /* ── TURTLE PALETTE ──
+           Inspired by the soft sage shell, pale green skin, and darker
+           outline of the Turtle mascot. */
+        body { background: #edf5ec; }
+        .container {
+            background: rgba(252, 254, 249, 0.97);
+            border: 1px solid #c9ddca;
+            box-shadow: 0 20px 40px rgba(65, 104, 78, 0.16);
+        }
+        h1 {
+            color: #3f6c50;
+            background: none;
+            -webkit-text-fill-color: #3f6c50;
+        }
+        h2, h3, label { color: #355d45; }
+        input, select, textarea, .assignments-list, .tag-section, #activity-log-container {
+            border-color: #c7dcc9;
+        }
+        .assignments-list, #activity-log-container { background: #f4f8f1; }
+        input:focus, select:focus, textarea:focus, .new-tag-row input:focus {
+            border-color: #75a984;
+            box-shadow: 0 0 0 3px rgba(117, 169, 132, 0.18);
+        }
+        .nav-btn, .submit-btn, .btn, .add-tag-btn, .popup-export-btn, .guide-link {
+            background: #6f9e7a;
+            box-shadow: 0 4px 15px rgba(79, 121, 91, 0.25);
+        }
+        .nav-btn:hover, .submit-btn:hover, .btn:hover, .add-tag-btn:hover, .popup-export-btn:hover, .guide-link:hover {
+            background: #527a61;
+            box-shadow: 0 6px 20px rgba(65, 104, 78, 0.3);
+        }
+        .quickstart-btn {
+            background: #c8e2c9;
+            color: #355d45;
+            box-shadow: 0 4px 18px rgba(99, 151, 113, 0.28);
+        }
+        .quickstart-btn:hover { background: #b5d8b9; box-shadow: 0 6px 24px rgba(99, 151, 113, 0.36); }
+        .popup-cancel-btn, .filter-chip.all-chip { background: #e4efe2; color: #42654d; border-color: #c7dcc9; }
+        .filter-chip.all-chip.active { background: #527a61; border-color: #527a61; }
+        .tag-color-swatch { background: #75a984; border-color: #c7dcc9; }
+        .timer-readout { background: #6f9e7a; }
+        .plan-timer-btn { background: #5e9970; }
+        .assignment-card.clickable:hover { box-shadow: 0 4px 18px rgba(79, 121, 91, 0.2); }
+        .assignment-card div[style*="linear-gradient"] { background: #8dbb96 !important; }
+        .streak-banner { background: #426a50; }
+        .streak-banner::before { background: radial-gradient(ellipse at 70% 50%, rgba(191, 224, 195, 0.2) 0%, transparent 70%); }
+        .streak-day.today .streak-dot { background: #8dbb96; border-color: #b9ddbe; box-shadow: 0 0 12px rgba(141, 187, 150, 0.7); }
+        .streak-day.filled .streak-dot, .streak-day.today.filled .streak-dot { background: #c6e4c9; border-color: #dff1e0; box-shadow: 0 0 8px rgba(198, 228, 201, 0.6); color: #355d45; }
+        .streak-day.filled:not(:last-child)::after { background: #c6e4c9; }
+        .streak-count span { background: none; -webkit-text-fill-color: #d9f0da; color: #d9f0da; }
+        .streak-message.active { color: #d9f0da; }
+
+        /* Contrast and tonal variation refinements */
+        body { background: #e5f0e4; }
+        .container { border-color: #aecab0; }
+        h1 { color: #284d37; -webkit-text-fill-color: #284d37; }
+        h2, h3, label { color: #284d37; }
+        .nav-btn { background: #467b68; }
+        .nav-btn:hover { background: #315e4e; }
+        .submit-btn, .add-tag-btn { background: #5d9870; }
+        .submit-btn:hover, .add-tag-btn:hover { background: #3f7654; }
+        .guide-link { background: #8a7350; }
+        .guide-link:hover { background: #695638; }
+        .quickstart-btn { background: #d2e6ad; color: #284d37; border: 1px solid #aec98f; }
+        .quickstart-btn:hover { background: #bfd994; }
+        .assignments-list, #activity-log-container { background: #edf6ec; border-color: #b6d3b8; }
+        .assignment-card { border-left: 5px solid #9dcaa5; }
+        .timer-readout { background: #3f7654; box-shadow: inset 0 0 0 2px rgba(218, 241, 216, 0.28); }
+        .plan-timer-btn { background: #4c8770; }
+        .streak-banner { background: #284d37; border: 1px solid #1c3a29; box-shadow: 0 8px 20px rgba(30, 66, 44, 0.22); }
+        .streak-banner::before { background: radial-gradient(ellipse at 70% 50%, rgba(159, 211, 167, 0.28) 0%, transparent 70%); }
+        .streak-label { color: #d8f0d9; }
+        .streak-count { color: #fff; }
+        .streak-count span { -webkit-text-fill-color: #e6f7c7; color: #e6f7c7; }
+        .streak-day-label, .streak-day.filled .streak-day-label { color: #d5ead6; }
+        .streak-day.today .streak-day-label { color: #fff; }
+        .streak-day:not(:last-child)::after { background: rgba(222, 244, 222, 0.32); }
+        .streak-day.filled:not(:last-child)::after { background: #d8efb4; }
+        .streak-day.filled .streak-dot, .streak-day.today.filled .streak-dot { background: #d8efb4; border-color: #f1f9dc; color: #284d37; }
+        .streak-day.today .streak-dot { background: #79b78a; border-color: #e4f4d6; }
+        .streak-message { color: #c7dfc9; }
+        .streak-message.active { color: #eff9d4; }
     </style>
 </head>
 <body>
@@ -699,7 +844,7 @@
                 <span class="streak-count"><span id="streak-number">0</span> days</span>
             </div>
             <div class="streak-timeline" id="streak-timeline"></div>
-            <div class="streak-message" id="streak-message">Log time or generate a plan to start your streak!</div>
+            <div class="streak-message" id="streak-message">Log time to start your streak!</div>
         </div>
 
         <h1>Turtle</h1>
@@ -820,6 +965,23 @@
                 </div>
             </div>
         </div>
+
+        <!-- Practice timer popup -->
+        <div id="practice-timer-popup" class="popup-overlay">
+            <div class="popup-box">
+                <button class="popup-close" id="practice-timer-close" onclick="closePracticeTimerPopup()" title="Close">×</button>
+                <h3 id="practice-timer-title" style="margin-bottom:8px;color:#333;">Practice Timer</h3>
+                <p id="practice-timer-description" style="font-size:14px;color:#666;"></p>
+                <div id="practice-timer-setup" class="form-group" style="margin-top:18px;">
+                    <label for="practice-timer-minutes">Practice length (minutes):</label>
+                    <input type="number" id="practice-timer-minutes" min="1" step="1" oninput="updatePracticeTimerPreview()">
+                </div>
+                <div class="timer-readout" id="practice-timer-readout">00:00</div>
+                <p class="timer-status" id="practice-timer-status">Set a practice length, then start when you are ready.</p>
+                <div class="popup-actions" id="practice-timer-actions" style="margin-top:18px;"></div>
+            </div>
+        </div>
+        <audio id="practice-timer-alarm" src="freesound_community-bedside-clock-alarm-95792.mp3" preload="auto" loop></audio>
 
         <!-- Main Menu -->
         <div id="main-menu" class="section active">
@@ -1187,6 +1349,10 @@
                 <br>
                 <button class="btn" style="background:#dc3545;" onclick="clearAllData()">Erase Everything</button>
             </div>
+        </div>
+
+        <div class="guide-link-wrap">
+            <a class="guide-link" href="https://existential111.github.io/Turtle_the_Consistency_Manager/Turtle%20%E2%80%94%20User%20Guide.pdf" target="_blank" rel="noopener noreferrer">📘 Open User Guide</a>
         </div>
     </div>
     <script>
@@ -1798,20 +1964,6 @@
             displayPlanResults(planned);
             resultsDiv.style.display = 'block';
 
-            // Auto-log the recommended time for each planned assignment
-            for (const item of planned) {
-                const rep = item.assignment.repetitionType;
-                const i   = item.index - 1;
-                if (rep === 'weekly') {
-                    await dataManager.updateWeeklyTimeSpent(i, item.recommendedTime);
-                } else if (rep === 'daily') {
-                    await dataManager.updateDailyTimeSpent(i, item.recommendedTime);
-                } else {
-                    await dataManager.updateTimeSpent(i, item.recommendedTime);
-                }
-                recordActivityEntry(i, item.recommendedTime);
-            }
-            if (planned.length > 0) recordStreakActivity();
         }
 
         function displayPlanResults(planned) {
@@ -1824,7 +1976,7 @@
             div.appendChild(title);
             planned.forEach(item => div.appendChild(createPlanCard(item.assignment, item.index, item.recommendedTime, item.realTimeSpent)));
             const note = document.createElement('p');
-            note.textContent = 'Time has been automatically logged for each assignment above. If you end up spending a different amount of time, you can adjust it in Log Time.';
+            note.textContent = 'Start a practice timer for an activity to log the time you actually spend on it.';
             note.style.cssText = 'margin-top:20px;font-style:italic;color:#666;';
             div.appendChild(note);
         }
@@ -1859,7 +2011,230 @@
                     <span style="font-size:22px;font-weight:800;">${recommendedTime} minutes</span>
                 </div>
                 <div class="tag-display-row">${tagDisplayHtml(assignment.tagId)}</div>`;
+            const timerButton = document.createElement('button');
+            timerButton.type = 'button';
+            timerButton.className = 'submit-btn plan-timer-btn';
+            timerButton.textContent = '▶ Start Practice Timer';
+            timerButton.addEventListener('click', () => {
+                if (index === null || index === undefined) openQuickstartPracticeTimer(assignment, recommendedTime);
+                else openPracticeTimer(index - 1, recommendedTime);
+            });
+            card.appendChild(timerButton);
             return card;
+        }
+
+        // ─────────────────────────────────────────────
+        //  Practice timer
+        // ─────────────────────────────────────────────
+        let practiceTimer = null;
+
+        function formatTimerSeconds(seconds) {
+            const whole = Math.max(0, Math.ceil(seconds));
+            return `${String(Math.floor(whole / 60)).padStart(2, '0')}:${String(whole % 60).padStart(2, '0')}`;
+        }
+
+        function formatElapsedTimerSeconds(seconds) {
+            // The countdown rounds upward; elapsed time rounds downward so the
+            // two displays always describe the same second of the timer.
+            return formatTimerSeconds(Math.floor(seconds));
+        }
+
+        async function openPracticeTimer(assignmentIdx, plannedMinutes) {
+            if (practiceTimer && practiceTimer.running) {
+                showStatus('Finish or end the current practice timer first.', true);
+                return;
+            }
+            const assignment = await dataManager.getAssignment(assignmentIdx);
+            if (!assignment) { showStatus('This assignment is no longer available.', true); return; }
+            setupPracticeTimer(assignment, plannedMinutes, assignmentIdx, false);
+        }
+
+        function openQuickstartPracticeTimer(assignment, plannedMinutes) {
+            if (practiceTimer && practiceTimer.running) {
+                showStatus('Finish or end the current practice timer first.', true);
+                return;
+            }
+            setupPracticeTimer(assignment, plannedMinutes, null, true);
+        }
+
+        function setupPracticeTimer(assignment, plannedMinutes, assignmentIdx, isQuickstart) {
+            practiceTimer = {
+                assignmentIdx, assignment, durationSeconds: plannedMinutes * 60,
+                elapsedSeconds: 0, lastStartedAt: null, running: false, interval: null, logging: false,
+                isQuickstart
+            };
+            document.getElementById('practice-timer-title').textContent = `Practice: ${assignment.task}`;
+            document.getElementById('practice-timer-description').textContent = `Your planned time is ${plannedMinutes} minute${plannedMinutes === 1 ? '' : 's'}. You can change it before starting.`;
+            document.getElementById('practice-timer-minutes').value = plannedMinutes;
+            document.getElementById('practice-timer-popup').classList.add('open');
+            renderPracticeTimer();
+        }
+
+        function updatePracticeTimerPreview() {
+            if (!practiceTimer || practiceTimer.running || practiceTimer.elapsedSeconds > 0) return;
+            const minutes = parseInt(document.getElementById('practice-timer-minutes').value);
+            if (!minutes || minutes <= 0) {
+                document.getElementById('practice-timer-readout').textContent = '00:00';
+                return;
+            }
+            practiceTimer.durationSeconds = minutes * 60;
+            document.getElementById('practice-timer-readout').textContent = formatTimerSeconds(practiceTimer.durationSeconds);
+        }
+
+        function currentPracticeElapsed() {
+            if (!practiceTimer) return 0;
+            return practiceTimer.elapsedSeconds + (practiceTimer.running ? (Date.now() - practiceTimer.lastStartedAt) / 1000 : 0);
+        }
+
+        function renderPracticeTimer() {
+            if (!practiceTimer) return;
+            const elapsed = currentPracticeElapsed();
+            const remaining = Math.max(0, practiceTimer.durationSeconds - elapsed);
+            const setup = document.getElementById('practice-timer-setup');
+            const close = document.getElementById('practice-timer-close');
+            const status = document.getElementById('practice-timer-status');
+            const actions = document.getElementById('practice-timer-actions');
+            document.getElementById('practice-timer-readout').textContent = formatTimerSeconds(remaining);
+            setup.style.display = practiceTimer.elapsedSeconds === 0 && !practiceTimer.running ? 'block' : 'none';
+            close.style.display = practiceTimer.running || practiceTimer.completed ? 'none' : 'block';
+
+            let actionState;
+            if (practiceTimer.completed) {
+                status.textContent = 'Timer complete — stop the alarm when you are ready.';
+                actionState = 'completed';
+            } else if (!practiceTimer.running && practiceTimer.elapsedSeconds === 0) {
+                status.textContent = 'Set a practice length, then start when you are ready.';
+                actionState = 'ready';
+            } else if (practiceTimer.running) {
+                status.textContent = `Practicing — ${formatElapsedTimerSeconds(elapsed)} elapsed`;
+                actionState = 'running';
+            } else {
+                status.textContent = `Paused — ${formatElapsedTimerSeconds(elapsed)} elapsed`;
+                actionState = 'paused';
+            }
+
+            // Do not replace these buttons on every clock tick: doing so can
+            // remove a button between pointer-down and click on slower devices.
+            if (practiceTimer.actionState !== actionState) {
+                practiceTimer.actionState = actionState;
+                if (actionState === 'ready') {
+                    actions.innerHTML = '<button class="popup-cancel-btn" onclick="closePracticeTimerPopup()">Cancel</button><button class="popup-export-btn" onclick="startPracticeTimer()">Start Timer</button>';
+                } else if (actionState === 'running') {
+                    actions.innerHTML = '<button class="popup-cancel-btn" onclick="pausePracticeTimer()">Pause</button><button class="popup-export-btn" style="background:linear-gradient(45deg,#dc3545,#c82333);" onclick="endPracticeTimer()">End & Log Time</button>';
+                } else if (actionState === 'completed') {
+                    actions.innerHTML = '<button class="popup-export-btn" onclick="stopPracticeTimerAlarm()">Stop Alarm</button>';
+                } else {
+                    actions.innerHTML = '<button class="popup-cancel-btn" onclick="resumePracticeTimer()">Resume</button><button class="popup-export-btn" style="background:linear-gradient(45deg,#dc3545,#c82333);" onclick="endPracticeTimer()">End & Log Time</button>';
+                }
+            }
+        }
+
+        function startPracticeTimer() {
+            const minutes = parseInt(document.getElementById('practice-timer-minutes').value);
+            if (!minutes || minutes <= 0) { showStatus('Please enter a valid practice length.', true); return; }
+            practiceTimer.durationSeconds = minutes * 60;
+            practiceTimer.lastStartedAt = Date.now();
+            practiceTimer.running = true;
+            practiceTimer.interval = setInterval(tickPracticeTimer, 250);
+            renderPracticeTimer();
+        }
+
+        function tickPracticeTimer() {
+            if (!practiceTimer || !practiceTimer.running) return;
+            if (currentPracticeElapsed() >= practiceTimer.durationSeconds) {
+                practiceTimer.elapsedSeconds = practiceTimer.durationSeconds;
+                practiceTimer.running = false;
+                clearInterval(practiceTimer.interval);
+                practiceTimer.interval = null;
+                finishPracticeTimer(true);
+            } else {
+                renderPracticeTimer();
+            }
+        }
+
+        function pausePracticeTimer() {
+            if (!practiceTimer || !practiceTimer.running) return;
+            practiceTimer.elapsedSeconds = currentPracticeElapsed();
+            practiceTimer.running = false;
+            clearInterval(practiceTimer.interval);
+            practiceTimer.interval = null;
+            renderPracticeTimer();
+        }
+
+        function resumePracticeTimer() {
+            if (!practiceTimer || practiceTimer.running) return;
+            practiceTimer.lastStartedAt = Date.now();
+            practiceTimer.running = true;
+            practiceTimer.interval = setInterval(tickPracticeTimer, 250);
+            renderPracticeTimer();
+        }
+
+        function endPracticeTimer() {
+            if (!practiceTimer) return;
+            if (practiceTimer.running) {
+                practiceTimer.elapsedSeconds = currentPracticeElapsed();
+                practiceTimer.running = false;
+                clearInterval(practiceTimer.interval);
+                practiceTimer.interval = null;
+            }
+            finishPracticeTimer(false);
+        }
+
+        function startPracticeTimerAlarm() {
+            const alarm = document.getElementById('practice-timer-alarm');
+            alarm.currentTime = 0;
+            alarm.play().catch(() => showStatus('Timer complete. Tap Stop Alarm to dismiss it.', true));
+        }
+
+        function stopPracticeTimerAlarm() {
+            const alarm = document.getElementById('practice-timer-alarm');
+            alarm.pause();
+            alarm.currentTime = 0;
+            closePracticeTimerPopup(true);
+        }
+
+        async function finishPracticeTimer(completedNaturally = false) {
+            if (!practiceTimer || practiceTimer.logging) return;
+            practiceTimer.logging = true;
+            const timer = practiceTimer;
+            if (completedNaturally) {
+                timer.completed = true;
+                startPracticeTimerAlarm();
+                renderPracticeTimer();
+            }
+            const minutes = Math.round(timer.elapsedSeconds / 60);
+            if (minutes > 0) {
+                if (timer.isQuickstart) {
+                    recordQuickstartActivityEntry(timer.assignment.task, timer.assignment.teacher, timer.assignment.tagId, minutes);
+                    recordStreakActivity();
+                    showStatus(`${minutes} minute${minutes === 1 ? '' : 's'} logged from your practice timer.`);
+                } else {
+                    const assignment = await dataManager.getAssignment(timer.assignmentIdx);
+                    if (!assignment) {
+                        showStatus('The assignment was removed, so no time was logged.', true);
+                    } else {
+                        if (assignment.repetitionType === 'weekly') await dataManager.updateWeeklyTimeSpent(timer.assignmentIdx, minutes);
+                        else if (assignment.repetitionType === 'daily') await dataManager.updateDailyTimeSpent(timer.assignmentIdx, minutes);
+                        else await dataManager.updateTimeSpent(timer.assignmentIdx, minutes);
+                        recordActivityEntry(timer.assignmentIdx, minutes);
+                        recordStreakActivity();
+                        showStatus(`${minutes} minute${minutes === 1 ? '' : 's'} logged from your practice timer.`);
+                    }
+                }
+            } else {
+                showStatus('Less than one half-minute elapsed, so no time was logged.');
+            }
+            if (!completedNaturally) closePracticeTimerPopup(true);
+        }
+
+        function closePracticeTimerPopup(force = false) {
+            if (practiceTimer && practiceTimer.running && !force) return;
+            if (practiceTimer && practiceTimer.interval) clearInterval(practiceTimer.interval);
+            const alarm = document.getElementById('practice-timer-alarm');
+            alarm.pause();
+            alarm.currentTime = 0;
+            document.getElementById('practice-timer-popup').classList.remove('open');
+            practiceTimer = null;
         }
 
         async function loadAssignmentForEdit() {
@@ -2660,7 +3035,7 @@
             const log       = loadActivityLog();
 
             if (log.length === 0) {
-                container.innerHTML = '<p style="color:#888;font-style:italic;">No activity recorded yet. Generate a plan or log time to get started.</p>';
+                container.innerHTML = '<p style="color:#888;font-style:italic;">No activity recorded yet. Log time or complete a practice timer to get started.</p>';
                 return;
             }
 
@@ -2843,7 +3218,7 @@
 
             const msg = document.getElementById('streak-message');
             if (!count || !lastDate) {
-                msg.textContent = 'Log time or generate a plan to start your streak!';
+                msg.textContent = 'Log time to start your streak!';
                 msg.className   = 'streak-message';
             } else if (lastDate !== today) {
                 if (lastDate === _offsetKey(1)) {
@@ -3199,21 +3574,15 @@
             for (const step of rawPlan) {
                 const fakeAssignment = makeQuickstartAssignment(step.label, step.importance, tagId, step.minutes);
                 resultsDiv.appendChild(createPlanCard(fakeAssignment, null, step.minutes, 0));
-                // Log this step's time to the shared activity log
-                if (!/^Break/.test(step.label)) {
-                    recordQuickstartActivityEntry(step.label, 'Turtle', tagId, step.minutes);
-                }
             }
 
             const note = document.createElement('p');
-            note.textContent = 'This Quick-Start plan has been logged to your Activity Log. It does not create or modify any assignments.';
+            note.textContent = 'Start a practice timer for an activity to log the time you actually spend. This plan does not create or modify assignments.';
             note.style.cssText = 'margin-top:20px;font-style:italic;color:#666;';
             resultsDiv.appendChild(note);
 
             resultsDiv.style.display = 'block';
 
-            // Quickstart practice counts toward the streak
-            recordStreakActivity();
         }
 
         // ─────────────────────────────────────────────
