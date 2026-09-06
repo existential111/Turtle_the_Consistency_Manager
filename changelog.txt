@@ -66,3 +66,12 @@ Added new User Guide
 6/27/2026:
 Removed new date system update banner
 
+9/6/2026:
+First update in a while!
+Color scheme changed to fit with turtle theme better
+Added timer to practice
+Automatic time logging changed to after timer finishes
+Dynamically logs time based on timer practice
+Added link to user guide on planner (not sure why this wasn't already in the planner)
+Small bug fixes
+
