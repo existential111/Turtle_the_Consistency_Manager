@@ -38,6 +38,11 @@
             max-width: 700px;
             animation: slideIn 0.5s ease-out;
         }
+        /* Use more of the available width on horizontal screens while keeping
+           the compact, readable layout on phones. */
+        @media (min-width: 769px) {
+            .container { max-width: 1050px; }
+        }
         @keyframes slideIn {
             from { opacity: 0; transform: translateY(30px); }
             to { opacity: 1; transform: translateY(0); }
@@ -528,6 +533,7 @@
         .popup-card-wrap { margin-bottom: 18px; }
         .popup-actions {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
             justify-content: flex-end;
         }
@@ -861,6 +867,8 @@
                     <div class="popup-card-wrap" id="popup-card-wrap"></div>
                     <div class="popup-actions">
                         <button class="popup-cancel-btn" onclick="closeAssignmentPopup()">Close</button>
+                        <button class="popup-cancel-btn" style="color:#287a43;" onclick="startPopupPracticeTimer()">▶ Start Timer</button>
+                        <button class="popup-cancel-btn" style="color:#667eea;" onclick="openPopupTimeLogPanel()">＋ Log Time</button>
                         <button class="popup-cancel-btn" style="color:#dc3545;" onclick="openPopupRemovePanel()">🗑 Remove</button>
                         <button class="popup-cancel-btn" style="color:#667eea;" onclick="openPopupEditPanel()">✏️ Edit</button>
                         <button class="popup-export-btn" onclick="exportPopupAssignment()">⬇ Export as CSV</button>
@@ -961,6 +969,20 @@
                     <div class="popup-actions">
                         <button class="popup-cancel-btn" onclick="closePopupRemovePanel()">← Back</button>
                         <button class="popup-export-btn" style="background:linear-gradient(45deg,#dc3545,#c82333);" onclick="confirmPopupRemove()">Remove Assignment</button>
+                    </div>
+                </div>
+
+                <!-- Manual time log panel -->
+                <div id="popup-time-log-panel" style="display:none;">
+                    <h3 style="margin-bottom:8px;color:#333;">Log Time</h3>
+                    <p id="popup-time-log-description" style="font-size:14px;color:#666;margin-bottom:18px;"></p>
+                    <div class="form-group">
+                        <label for="popup-time-spent">Time spent outside Turtle (minutes):</label>
+                        <input type="number" id="popup-time-spent" min="1" step="1" required>
+                    </div>
+                    <div class="popup-actions">
+                        <button class="popup-cancel-btn" onclick="closePopupTimeLogPanel()">← Back</button>
+                        <button class="popup-export-btn" onclick="logPopupTime()">Log Time</button>
                     </div>
                 </div>
             </div>
@@ -2727,7 +2749,7 @@
 
         // ── panel helpers ────────────────────────────
         function _showPopupPanel(id) {
-            ['popup-view-panel','popup-edit-panel','popup-remove-panel'].forEach(p => {
+            ['popup-view-panel','popup-edit-panel','popup-remove-panel','popup-time-log-panel'].forEach(p => {
                 document.getElementById(p).style.display = p === id ? 'block' : 'none';
             });
         }
@@ -2753,6 +2775,62 @@
             if (event.target === document.getElementById('assignment-popup')) {
                 closeAssignmentPopup();
             }
+        }
+
+        // ── Timer and manual time log ───────────────
+        function startPopupPracticeTimer() {
+            if (practiceTimer && practiceTimer.running) {
+                showStatus('Finish or end the current practice timer first.', true);
+                return;
+            }
+            const idx = _popupIndex;
+            const plannedMinutes = _popupAssignment?.time;
+            if (idx === null || idx === undefined || !plannedMinutes) return;
+            closeAssignmentPopup();
+            openPracticeTimer(idx, plannedMinutes);
+        }
+
+        function openPopupTimeLogPanel() {
+            if (!_popupAssignment) return;
+            document.getElementById('popup-time-spent').value = '';
+            document.getElementById('popup-time-log-description').textContent =
+                `Record time you already spent on ${_popupAssignment.task}.`;
+            _showPopupPanel('popup-time-log-panel');
+            document.getElementById('popup-time-spent').focus();
+        }
+
+        function closePopupTimeLogPanel() {
+            _showPopupPanel('popup-view-panel');
+        }
+
+        async function logPopupTime() {
+            const idx = _popupIndex;
+            const minutes = parseInt(document.getElementById('popup-time-spent').value);
+            if (idx === null || idx === undefined) return;
+            if (!minutes || minutes <= 0) {
+                showStatus('Please enter a valid time amount.', true);
+                return;
+            }
+
+            const assignment = await dataManager.getAssignment(idx);
+            if (!assignment) {
+                showStatus('This assignment is no longer available.', true);
+                closeAssignmentPopup();
+                return;
+            }
+            if (assignment.repetitionType === 'weekly') await dataManager.updateWeeklyTimeSpent(idx, minutes);
+            else if (assignment.repetitionType === 'daily') await dataManager.updateDailyTimeSpent(idx, minutes);
+            else await dataManager.updateTimeSpent(idx, minutes);
+            recordActivityEntry(idx, minutes);
+            recordStreakActivity();
+
+            _popupAssignment = await dataManager.getAssignment(idx);
+            const wrap = document.getElementById('popup-card-wrap');
+            wrap.innerHTML = '';
+            wrap.appendChild(createAssignmentCard(_popupAssignment, idx, false));
+            _showPopupPanel('popup-view-panel');
+            showStatus(`${minutes} minute${minutes === 1 ? '' : 's'} logged successfully.`);
+            if (document.getElementById('view-assignments').classList.contains('active')) loadAssignments();
         }
 
         // ── Edit panel ───────────────────────────────
