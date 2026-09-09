@@ -75,3 +75,8 @@ Dynamically logs time based on timer practice
 Added link to user guide on planner (not sure why this wasn't already in the planner)
 Small bug fixes
 
+9/8/2026:
+Updated format to look much nicer (and use up more of the screen) on PC
+Added timer access through assignment list
+Added manual time logs through assignment list
+User guide outdated, new version coming soon
